@@ -1,0 +1,23 @@
+{
+    "name": "Development Environment",
+
+    "dockerComposeFile": "../docker-compose.yaml",
+
+    "service": "frontend",
+
+    "workspaceFolder": "/app",
+
+    // コンテナ内で使用するおすすめのVSCode拡張機能
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "bradlc.vscode-tailwindcss" // 今後Tailwind導入時に必須
+      ]
+    }
+  },
+
+  // ローカル（ホスト）のDockerソケット等を共有しない安全なデフォルト設定
+  "shutdownAction": "stopCompose"
+}
