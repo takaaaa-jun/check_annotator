@@ -1,11 +1,36 @@
+name: check-annotator
+
 services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+
+      # 必要な場合のみ使用
+      DB_SSL_CA: ${DB_SSL_CA:-}
+    networks:
+      - app-network
+
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
-    volumes:
-      # ホストの./frontendをDockerコンテナ内の/appにマウント
-      - ./frontend:/app
-      - /app/node_modules
+    environment:
+      INTERNAL_API_URL: http://backend:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

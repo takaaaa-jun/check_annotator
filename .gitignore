@@ -1,1 +1,12 @@
 *.bkp
+.env
+.env.*
+!.env.example
+*.zip
+
+frontend/node_modules/
+frontend/.next/
+
+backend/__pycache__/
+backend/**/*.py[cod]
+backend/.pytest_cache/

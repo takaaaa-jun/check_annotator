@@ -1,0 +1,72 @@
+services:
+  workspace:
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+    command: sleep infinity
+    working_dir: /workspace/check_annotator
+    volumes:
+      - .:/workspace/check_annotator
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+
+  backend:
+    build:
+      target: development
+    working_dir: /workspace/check_annotator/backend
+    command:
+      - uvicorn
+      - app.main:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --reload
+    volumes:
+      - .:/workspace/check_annotator
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - >-
+          import urllib.request;
+          urllib.request.urlopen('http://localhost:8000/health')
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+
+  frontend:
+    build:
+      target: development
+    working_dir: /workspace/frontend
+    command:
+      - npm
+      - run
+      - dev
+      - --
+      - --hostname
+      - 0.0.0.0
+    volumes:
+      - ./frontend:/workspace/frontend
+      - frontend-node-modules:/workspace/frontend/node_modules
+      - frontend-next:/workspace/frontend/.next
+    ports:
+      - "3000:3000"
+
+volumes:
+  frontend-node-modules:
+  frontend-next:

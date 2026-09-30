@@ -1,23 +1,25 @@
 {
-    "name": "Development Environment",
-
-    "dockerComposeFile": "../docker-compose.yaml",
-
-    "service": "frontend",
-
-    "workspaceFolder": "/app",
-
-    // コンテナ内で使用するおすすめのVSCode拡張機能
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "dbaeumer.vscode-eslint",
-        "esbenp.prettier-vscode",
-        "bradlc.vscode-tailwindcss" // 今後Tailwind導入時に必須
-      ]
+  "name": "check_annotator",
+  "dockerComposeFile": [
+    "../docker-compose.yaml",
+    "../docker-compose.dev.yaml"
+  ],
+  "service": "workspace",
+  "runServices": [
+    "workspace",
+    "backend",
+    "frontend"
+  ],
+  "workspaceFolder": "/workspace/check_annotator",
+  "shutdownAction": "stopCompose",
+  "overrideCommand": false,
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "22"
     }
   },
-
-  // ローカル（ホスト）のDockerソケット等を共有しない安全なデフォルト設定
-  "shutdownAction": "stopCompose"
-}
+  "forwardPorts": [
+    3000,
+    8000
+  ]
+}   
