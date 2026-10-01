@@ -1,8 +1,10 @@
 *.bkp
 .env
 .env.*
+.env.list
 !.env.example
 *.zip
+
 
 frontend/node_modules/
 frontend/.next/

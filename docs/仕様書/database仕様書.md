@@ -7,6 +7,7 @@
 - users
   - ユーザ情報を管理するテーブル
   - 管理者用のアカウントと作業作用のアカウントで権限を分ける
+
   ```txt
   users.role_id → roles.role_id
   ON UPDATE CASCADE
@@ -24,6 +25,7 @@
 - groups
   - タスクのグループを管理するテーブル
   - 各グループの担当者を決めるときに使用する
+
   ```txt
   groups.user_id → users.user_id
   ON UPDATE CASCADE
@@ -41,6 +43,7 @@
 - comments
   - タスクに対するコメントを管理するテーブル
   - 付与予定ラベルとコメントの状態の場合に投稿されるコメントデータを管理するテーブル
+
   ```txt
   comments.task_id → tasks.task_id
   ON UPDATE CASCADE
@@ -60,6 +63,7 @@
 - tasks
   - タスクを管理するテーブル
   - アノテーションをする画像がimage_idとなっており，番号に対応させて状態の更新を行う
+
   ```txt
   tasks.group_id → groups.group_id
   ON UPDATE CASCADE
