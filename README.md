@@ -50,7 +50,8 @@
   - framework: Next.js
   - library: react
 - サーバサイド
-  - language: Go
+  - language: Python
+  - framework: FastAPI
 - DB
   - language: MySQL
 
