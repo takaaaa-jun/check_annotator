@@ -3,3 +3,7 @@ uvicorn[standard]
 sqlalchemy
 pymysql
 cryptography
+pwdlib[argon2]
+PyJWT
+pytest
+httpx
