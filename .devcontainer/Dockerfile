@@ -13,6 +13,11 @@ RUN rm -f \
         default-mysql-client \
     && rm -rf /var/lib/apt/lists/*
 
+# VS CodeからFastAPIの実行・テスト・補完を利用できるようにする。
+COPY backend/requirements.txt /tmp/backend-requirements.txt
+RUN python -m pip install --no-cache-dir \
+        -r /tmp/backend-requirements.txt
+
 WORKDIR /workspace/check_annotator
 
 CMD ["sleep", "infinity"]
