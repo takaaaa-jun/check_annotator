@@ -15,6 +15,14 @@ class UserNotFoundError(Exception):
     pass
 
 
+class GroupNotFoundError(Exception):
+    pass
+
+
+class StateNotFoundError(Exception):
+    pass
+
+
 def error_response(
     status_code: int,
     code: str,
@@ -62,6 +70,20 @@ async def user_not_found_exception_handler(
         code="USER_NOT_FOUND",
         message="指定されたユーザーが存在しません",
     )
+
+
+async def group_not_found_exception_handler(
+    request: Request,
+    exc: GroupNotFoundError,
+) -> JSONResponse:
+    return error_response(404, "GROUP_NOT_FOUND", "指定されたグループが存在しません")
+
+
+async def state_not_found_exception_handler(
+    request: Request,
+    exc: StateNotFoundError,
+) -> JSONResponse:
+    return error_response(404, "STATE_NOT_FOUND", "指定された状態が存在しません")
 
 
 async def validation_exception_handler(
