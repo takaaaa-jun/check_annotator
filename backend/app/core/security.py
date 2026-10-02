@@ -11,6 +11,10 @@ ACCESS_TOKEN_EXPIRE_SECONDS = 28_800
 password_hash = PasswordHash.recommended()
 
 
+class InvalidAccessTokenError(Exception):
+    pass
+
+
 def verify_password(
     plain_password: str,
     hashed_password: str,
@@ -42,3 +46,38 @@ def create_access_token(
         os.environ["AUTH_SECRET_KEY"],
         algorithm=JWT_ALGORITHM,
     )
+
+
+def decode_access_token(
+    access_token: str,
+) -> int:
+    try:
+        payload = jwt.decode(
+            access_token,
+            os.environ["AUTH_SECRET_KEY"],
+            algorithms=[JWT_ALGORITHM],
+            options={
+                "require": [
+                    "sub",
+                    "iat",
+                    "exp",
+                ]
+            },
+        )
+    except jwt.PyJWTError as exc:
+        raise InvalidAccessTokenError from exc
+
+    subject = payload.get("sub")
+
+    if not isinstance(subject, str):
+        raise InvalidAccessTokenError
+
+    try:
+        user_id = int(subject)
+    except ValueError as exc:
+        raise InvalidAccessTokenError from exc
+
+    if user_id <= 0:
+        raise InvalidAccessTokenError
+
+    return user_id
