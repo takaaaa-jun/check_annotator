@@ -1,4 +1,11 @@
+from datetime import UTC, datetime
+from unittest.mock import Mock
+
+import pytest
 from fastapi.testclient import TestClient
+
+from app.models.task import Task
+from app.repositories.task_repository import TaskRepository
 
 
 def login(client: TestClient, user_name: str = "takahashi") -> None:
@@ -72,3 +79,28 @@ def test_invalid_request_returns_422(client: TestClient) -> None:
         response = client.patch("/api/tasks/1/state", json=payload)
         assert response.status_code == 422
         assert response.json()["error"]["code"] == "VALIDATION_ERROR"
+
+
+def test_update_task_state_rolls_back_on_commit_failure() -> None:
+    db = Mock()
+    db.scalar.return_value = "完了"
+    db.commit.side_effect = RuntimeError("commit failed")
+    task = Task(
+        task_id=1,
+        group_id=1,
+        image_id=10,
+        state_id=1,
+        created_at=datetime.now(UTC).replace(tzinfo=None),
+        updated_at=datetime.now(UTC).replace(tzinfo=None),
+        deleted_at=None,
+    )
+
+    with pytest.raises(RuntimeError, match="commit failed"):
+        TaskRepository(db).update_state(
+            task,
+            state_id=2,
+            updated_at=datetime.now(UTC).replace(tzinfo=None),
+        )
+
+    db.rollback.assert_called_once_with()
+    db.refresh.assert_not_called()

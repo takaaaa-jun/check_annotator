@@ -57,7 +57,11 @@ class TaskRepository:
             raise ValueError("state not found")
         task.state_id = state_id
         task.updated_at = updated_at
-        self.db.commit()
+        try:
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise
         self.db.refresh(task)
         return state_name
 
