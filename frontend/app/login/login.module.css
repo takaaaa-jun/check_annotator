@@ -1,0 +1,76 @@
+.page {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+  background: #f4f7fb;
+}
+
+.card {
+  width: min(100%, 420px);
+  padding: 32px;
+  border: 1px solid #dbe3ee;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 16px 40px rgb(28 49 78 / 10%);
+}
+
+.title {
+  margin: 0 0 8px;
+  font-size: 1.75rem;
+}
+
+.description {
+  margin: 0 0 28px;
+  color: #526173;
+}
+
+.form,
+.field {
+  display: grid;
+  gap: 16px;
+}
+
+.field {
+  gap: 8px;
+}
+
+.field label {
+  font-weight: 700;
+}
+
+.field input {
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid #aebdce;
+  border-radius: 8px;
+  color: #171717;
+  background: #ffffff;
+  font: inherit;
+}
+
+.field input:focus-visible {
+  outline: 3px solid rgb(31 111 235 / 25%);
+  border-color: #1f6feb;
+}
+
+.submit {
+  min-height: 44px;
+  border: 0;
+  border-radius: 8px;
+  color: #ffffff;
+  background: #195eb5;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.submit:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.error {
+  margin: 0;
+  color: #b42318;
+}
