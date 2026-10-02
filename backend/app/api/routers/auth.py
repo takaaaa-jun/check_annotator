@@ -73,3 +73,17 @@ def login(
             role_name=result.user.role_name,
         )
     )
+
+
+@router.post(
+    "/logout",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def logout(response: Response) -> None:
+    response.delete_cookie(
+        key="access_token",
+        path="/",
+        secure=False,
+        httponly=False,
+        samesite="lax",
+    )
