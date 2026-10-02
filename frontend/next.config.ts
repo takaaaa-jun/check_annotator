@@ -2,9 +2,11 @@ import type { NextConfig } from "next";
 
 const backendUrl =
   process.env.INTERNAL_API_URL ?? "http://backend:8000";
+const basePath =
+  process.env.NEXT_PUBLIC_BASE_PATH ?? "/check_annotator";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  basePath,
   webpack: (config, { dev }) => {
     if (dev) {
       config.watchOptions = {
@@ -22,8 +24,9 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       {
-        source: "/api/:path*",
-        destination: `${backendUrl}/:path*`,
+        source: `${basePath}/api/:path*`,
+        destination: `${backendUrl}/api/:path*`,
+        basePath: false,
       },
     ];
   },
