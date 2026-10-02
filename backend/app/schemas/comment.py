@@ -22,3 +22,26 @@ class CommentResponse(BaseModel):
     content: str
     created_at: datetime
     updated_at: datetime
+
+
+class CommentListItemResponse(BaseModel):
+    comment_id: int
+    user_id: int
+    user_name: str
+    parent_id: int | None
+    content: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class CommentPaginationResponse(BaseModel):
+    page: int
+    page_size: int
+    total: int
+    total_pages: int
+
+
+class TaskCommentsResponse(BaseModel):
+    task_id: int
+    comments: list[CommentListItemResponse]
+    pagination: CommentPaginationResponse
