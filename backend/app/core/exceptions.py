@@ -23,6 +23,10 @@ class StateNotFoundError(Exception):
     pass
 
 
+class TaskNotFoundError(Exception):
+    pass
+
+
 def error_response(
     status_code: int,
     code: str,
@@ -84,6 +88,13 @@ async def state_not_found_exception_handler(
     exc: StateNotFoundError,
 ) -> JSONResponse:
     return error_response(404, "STATE_NOT_FOUND", "指定された状態が存在しません")
+
+
+async def task_not_found_exception_handler(
+    request: Request,
+    exc: TaskNotFoundError,
+) -> JSONResponse:
+    return error_response(404, "TASK_NOT_FOUND", "指定されたタスクが存在しません")
 
 
 async def validation_exception_handler(

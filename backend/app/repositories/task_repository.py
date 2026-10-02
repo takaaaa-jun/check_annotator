@@ -29,6 +29,38 @@ class TaskRepository:
             )
         ) > 0
 
+    def find_active_with_state(self, task_id: int) -> tuple[Task, str] | None:
+        row = self.db.execute(
+            select(Task, State.state_name)
+            .join(State, State.state_id == Task.state_id)
+            .where(
+                Task.task_id == task_id,
+                Task.deleted_at.is_(None),
+                State.deleted_at.is_(None),
+            )
+        ).one_or_none()
+        return None if row is None else (row[0], row[1])
+
+    def update_state(
+        self,
+        task: Task,
+        state_id: int,
+        updated_at: datetime,
+    ) -> str:
+        state_name = self.db.scalar(
+            select(State.state_name).where(
+                State.state_id == state_id,
+                State.deleted_at.is_(None),
+            )
+        )
+        if state_name is None:
+            raise ValueError("state not found")
+        task.state_id = state_id
+        task.updated_at = updated_at
+        self.db.commit()
+        self.db.refresh(task)
+        return state_name
+
     def find_page(
         self,
         group_id: int,
