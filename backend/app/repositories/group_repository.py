@@ -123,3 +123,11 @@ class GroupRepository:
             )
 
         return records
+
+    def find_active_by_id(self, group_id: int) -> Group | None:
+        return self.db.scalar(
+            select(Group).where(
+                Group.group_id == group_id,
+                Group.deleted_at.is_(None),
+            )
+        )

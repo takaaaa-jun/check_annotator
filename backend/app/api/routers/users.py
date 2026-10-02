@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Depends
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Query
+from fastapi.exceptions import RequestValidationError
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import (
@@ -9,6 +12,7 @@ from app.repositories.user_repository import (
     UserRepository,
 )
 from app.repositories.group_repository import GroupRepository
+from app.repositories.task_repository import TaskRepository
 from app.schemas.error import ErrorResponse
 from app.schemas.group import (
     GroupProgressResponse,
@@ -17,8 +21,15 @@ from app.schemas.group import (
     UserGroupsResponse,
 )
 from app.schemas.user import CurrentUserResponse
+from app.schemas.task import (
+    GroupTasksResponse,
+    PaginationResponse,
+    TaskGroupResponse,
+    TaskResponse,
+)
 from app.services.group_service import GroupService
 from app.services.user_service import UserService
+from app.services.task_service import TaskService
 
 
 router = APIRouter(
@@ -104,4 +115,52 @@ def get_user_groups(
             )
             for group in result.groups
         ],
+    )
+
+
+@router.get(
+    "/{user_id}/groups/{group_id}/tasks",
+    response_model=GroupTasksResponse,
+    responses={code: {"model": ErrorResponse} for code in [401, 403, 404, 422, 500]},
+)
+def get_group_tasks(
+    user_id: int,
+    group_id: int,
+    state_id: Annotated[int | None, Query(ge=1)] = None,
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1)] = 50,
+    authenticated_user_id: int = Depends(get_authenticated_user_id),
+    db: Session = Depends(get_db),
+) -> GroupTasksResponse:
+    if page_size not in {10, 50, 100}:
+        raise RequestValidationError([])
+
+    result = TaskService(
+        UserRepository(db), GroupRepository(db), TaskRepository(db)
+    ).get_group_tasks(
+        authenticated_user_id, user_id, group_id, state_id, page, page_size
+    )
+    return GroupTasksResponse(
+        group=TaskGroupResponse(
+            group_id=result.group_id,
+            group_name=result.group_name,
+            user_id=result.user_id,
+            user_name=result.user_name,
+        ),
+        tasks=[
+            TaskResponse(
+                task_id=task.task_id,
+                image_id=task.image_id,
+                state_id=task.state_id,
+                state_name=task.state_name,
+                updated_at=task.updated_at,
+            )
+            for task in result.tasks
+        ],
+        pagination=PaginationResponse(
+            page=result.page,
+            page_size=result.page_size,
+            total=result.total,
+            total_pages=result.total_pages,
+        ),
     )
