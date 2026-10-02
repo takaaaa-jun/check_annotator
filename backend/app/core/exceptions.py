@@ -3,6 +3,10 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 
+class AuthenticationRequiredError(Exception):
+    pass
+
+
 def error_response(
     status_code: int,
     code: str,
@@ -16,6 +20,17 @@ def error_response(
                 "message": message,
             }
         },
+    )
+
+
+async def authentication_exception_handler(
+    request: Request,
+    exc: AuthenticationRequiredError,
+) -> JSONResponse:
+    return error_response(
+        status_code=401,
+        code="AUTHENTICATION_REQUIRED",
+        message="認証が必要です",
     )
 
 

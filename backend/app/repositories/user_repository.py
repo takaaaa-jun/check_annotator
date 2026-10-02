@@ -25,6 +25,21 @@ class UserRepository:
 
         return self.db.scalar(statement)
 
+    def find_active_by_id(
+        self,
+        user_id: int,
+    ) -> User | None:
+        statement = (
+            select(User)
+            .options(joinedload(User.role))
+            .where(
+                User.user_id == user_id,
+                User.deleted_at.is_(None),
+            )
+        )
+
+        return self.db.scalar(statement)
+
     def update_login_at(
         self,
         user: User,
