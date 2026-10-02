@@ -27,6 +27,16 @@ def test_logout_deletes_access_token_cookie(
     assert "path=/" in set_cookie
     assert "samesite=lax" in set_cookie
 
+    authenticated_response = client.get("/api/users/me")
+
+    assert authenticated_response.status_code == 401
+    assert authenticated_response.json() == {
+        "error": {
+            "code": "AUTHENTICATION_REQUIRED",
+            "message": "認証が必要です",
+        }
+    }
+
 
 def test_logout_without_cookie_is_successful(
     client: TestClient,
