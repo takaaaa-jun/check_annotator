@@ -21,6 +21,7 @@ from app.core.security import password_hash  # noqa: E402
 from app.database import get_db  # noqa: E402
 from app.db.base import Base  # noqa: E402
 from app.main import app  # noqa: E402
+from app.models.comment import Comment  # noqa: E402, F401
 from app.models.role import Role  # noqa: E402
 from app.models.group import Group  # noqa: E402
 from app.models.state import State  # noqa: E402

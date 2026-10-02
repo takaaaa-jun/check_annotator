@@ -27,6 +27,10 @@ class TaskNotFoundError(Exception):
     pass
 
 
+class CommentNotFoundError(Exception):
+    pass
+
+
 def error_response(
     status_code: int,
     code: str,
@@ -95,6 +99,13 @@ async def task_not_found_exception_handler(
     exc: TaskNotFoundError,
 ) -> JSONResponse:
     return error_response(404, "TASK_NOT_FOUND", "指定されたタスクが存在しません")
+
+
+async def comment_not_found_exception_handler(
+    request: Request,
+    exc: CommentNotFoundError,
+) -> JSONResponse:
+    return error_response(404, "COMMENT_NOT_FOUND", "指定されたコメントが存在しません")
 
 
 async def validation_exception_handler(
