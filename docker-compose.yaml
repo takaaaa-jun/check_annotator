@@ -29,6 +29,7 @@ services:
       dockerfile: Dockerfile
     environment:
       INTERNAL_API_URL: http://backend:8000
+      NEXT_PUBLIC_BASE_PATH: ${NEXT_PUBLIC_BASE_PATH:-/check_annotator}
     depends_on:
       backend:
         condition: service_healthy
