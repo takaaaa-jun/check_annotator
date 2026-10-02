@@ -55,6 +55,21 @@
 - DB
   - language: MySQL
 
+## 環境設定
+
+`.env.example` を `.env` へコピーし、接続先に合わせて次の値を設定する。
+
+- `DB_HOST`: データベースサーバーのIPアドレスまたはホスト名
+- `DB_PORT`: MySQLのポート番号
+- `DB_NAME`: 使用するデータベース名
+- `DB_USER`: データベースユーザー名
+- `DB_PASSWORD`: データベースパスワード
+- `DB_SSL_CA`: SSL接続で必要な場合のCA証明書パス
+- `AUTH_SECRET_KEY`: JWT署名用の十分に長いランダム文字列
+- `CORS_ORIGINS`: フロントエンドのURL。複数の場合はカンマ区切り
+
+接続先を変更するときは `.env` の値を置き換え、Docker Composeのサービスを再作成する。`.env` は認証情報を含むためGitへコミットしない。
+
 ##
 
 Copyright &copy; 2026 Jun Takahashi, Yamazaki Lab, University of Niigata. All rights reserved.

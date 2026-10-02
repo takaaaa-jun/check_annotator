@@ -9,6 +9,9 @@ services:
       - .:/workspace/check_annotator
     environment:
       APP_ENV: ${APP_ENV:-development}
+      DATABASE_URL: ${DATABASE_URL:-}
+      AUTH_SECRET_KEY: ${AUTH_SECRET_KEY}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT:-3306}
       DB_NAME: ${DB_NAME}
