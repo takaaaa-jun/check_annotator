@@ -5,8 +5,12 @@ from app.api.routers.auth import router as auth_router
 from app.api.routers.users import router as users_router
 from app.core.exceptions import (
     AuthenticationRequiredError,
+    PermissionDeniedError,
+    UserNotFoundError,
     authentication_exception_handler,
     internal_exception_handler,
+    permission_exception_handler,
+    user_not_found_exception_handler,
     validation_exception_handler,
 )
 
@@ -16,6 +20,14 @@ app = FastAPI()
 app.add_exception_handler(
     AuthenticationRequiredError,
     authentication_exception_handler,
+)
+app.add_exception_handler(
+    PermissionDeniedError,
+    permission_exception_handler,
+)
+app.add_exception_handler(
+    UserNotFoundError,
+    user_not_found_exception_handler,
 )
 app.add_exception_handler(
     RequestValidationError,

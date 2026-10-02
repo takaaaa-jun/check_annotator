@@ -22,6 +22,9 @@ from app.database import get_db  # noqa: E402
 from app.db.base import Base  # noqa: E402
 from app.main import app  # noqa: E402
 from app.models.role import Role  # noqa: E402
+from app.models.group import Group  # noqa: E402
+from app.models.state import State  # noqa: E402
+from app.models.task import Task  # noqa: E402
 from app.models.user import User  # noqa: E402
 
 
@@ -69,6 +72,101 @@ def reset_database() -> Generator[None, None, None]:
                 updated_at=now,
                 deleted_at=now,
             )
+        )
+        admin_role = Role(
+            role_name="admin",
+            created_at=now,
+            updated_at=now,
+            deleted_at=None,
+        )
+        db.add(admin_role)
+        db.flush()
+        no_groups_user = User(
+            user_name="no-groups-user",
+            password_hash=password_hash.hash("test1"),
+            role_id=role.role_id,
+            login_at=None,
+            created_at=now,
+            updated_at=now,
+            deleted_at=None,
+        )
+        admin_user = User(
+            user_name="admin-user",
+            password_hash=password_hash.hash("test1"),
+            role_id=admin_role.role_id,
+            login_at=None,
+            created_at=now,
+            updated_at=now,
+            deleted_at=None,
+        )
+        db.add_all([no_groups_user, admin_user])
+        db.flush()
+
+        states = [
+            State(
+                state_name=state_name,
+                created_at=now,
+                updated_at=now,
+                deleted_at=None,
+            )
+            for state_name in [
+                "未着手",
+                "完了",
+                "付与予定ラベル",
+                "コメント",
+            ]
+        ]
+        deleted_state = State(
+            state_name="削除済み状態",
+            created_at=now,
+            updated_at=now,
+            deleted_at=now,
+        )
+        db.add_all([*states, deleted_state])
+        db.flush()
+
+        active_group = Group(
+            group_name="グループ1",
+            user_id=1,
+            created_at=now,
+            updated_at=now,
+            deleted_at=None,
+        )
+        empty_group = Group(
+            group_name="空グループ",
+            user_id=1,
+            created_at=now,
+            updated_at=now,
+            deleted_at=None,
+        )
+        deleted_group = Group(
+            group_name="削除済みグループ",
+            user_id=1,
+            created_at=now,
+            updated_at=now,
+            deleted_at=now,
+        )
+        db.add_all([active_group, empty_group, deleted_group])
+        db.flush()
+
+        db.add_all(
+            [
+                Task(
+                    group_id=active_group.group_id,
+                    image_id=image_id,
+                    state_id=state_id,
+                    created_at=now,
+                    updated_at=now,
+                    deleted_at=deleted_at,
+                )
+                for image_id, state_id, deleted_at in [
+                    (10, states[0].state_id, None),
+                    (11, states[0].state_id, None),
+                    (20, states[1].state_id, None),
+                    (30, states[1].state_id, now),
+                    (40, deleted_state.state_id, None),
+                ]
+            ]
         )
         db.commit()
 

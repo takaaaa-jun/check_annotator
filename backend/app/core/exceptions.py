@@ -7,6 +7,14 @@ class AuthenticationRequiredError(Exception):
     pass
 
 
+class PermissionDeniedError(Exception):
+    pass
+
+
+class UserNotFoundError(Exception):
+    pass
+
+
 def error_response(
     status_code: int,
     code: str,
@@ -31,6 +39,28 @@ async def authentication_exception_handler(
         status_code=401,
         code="AUTHENTICATION_REQUIRED",
         message="認証が必要です",
+    )
+
+
+async def permission_exception_handler(
+    request: Request,
+    exc: PermissionDeniedError,
+) -> JSONResponse:
+    return error_response(
+        status_code=403,
+        code="PERMISSION_DENIED",
+        message="アクセス権限がありません",
+    )
+
+
+async def user_not_found_exception_handler(
+    request: Request,
+    exc: UserNotFoundError,
+) -> JSONResponse:
+    return error_response(
+        status_code=404,
+        code="USER_NOT_FOUND",
+        message="指定されたユーザーが存在しません",
     )
 
 
