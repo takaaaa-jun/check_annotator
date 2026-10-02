@@ -15,6 +15,13 @@ class InvalidAccessTokenError(Exception):
     pass
 
 
+def get_auth_secret_key() -> str:
+    secret_key = os.getenv("AUTH_SECRET_KEY", "")
+    if not secret_key:
+        raise RuntimeError("AUTH_SECRET_KEY must be configured")
+    return secret_key
+
+
 def verify_password(
     plain_password: str,
     hashed_password: str,
@@ -43,7 +50,7 @@ def create_access_token(
 
     return jwt.encode(
         payload,
-        os.environ["AUTH_SECRET_KEY"],
+        get_auth_secret_key(),
         algorithm=JWT_ALGORITHM,
     )
 
@@ -54,7 +61,7 @@ def decode_access_token(
     try:
         payload = jwt.decode(
             access_token,
-            os.environ["AUTH_SECRET_KEY"],
+            get_auth_secret_key(),
             algorithms=[JWT_ALGORITHM],
             options={
                 "require": [
