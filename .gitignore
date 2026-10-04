@@ -1,5 +1,5 @@
 *.bkp
-.env
+*.env
 .env.*
 .env.list
 !.env.example
