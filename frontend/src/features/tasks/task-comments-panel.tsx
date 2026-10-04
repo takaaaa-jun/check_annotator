@@ -68,6 +68,8 @@ export function TaskCommentsPanel({
     useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] =
     useState<string | null>(null);
+  const [confirming, setConfirming] =
+    useState(false);
   const submittingRef = useRef(false);
 
   useEffect(() => {
@@ -131,7 +133,7 @@ export function TaskCommentsPanel({
   const trimmedContentLength =
     content.trim().length;
 
-  async function handleSubmit(
+  function handleSubmit(
     event: React.FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault();
@@ -148,7 +150,17 @@ export function TaskCommentsPanel({
       return;
     }
 
+    setSubmitError(null);
+    setConfirming(true);
+  }
+
+  async function submitComment() {
+    if (submittingRef.current) {
+      return;
+    }
+
     submittingRef.current = true;
+    setConfirming(false);
     setSubmitting(true);
     setSubmitError(null);
     setSubmitSuccess(null);
@@ -257,9 +269,7 @@ export function TaskCommentsPanel({
       </div>
 
       <form
-        onSubmit={(event) => {
-          void handleSubmit(event);
-        }}
+        onSubmit={handleSubmit}
         className="mb-5 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
       >
         {submitSuccess !== null && (
@@ -309,6 +319,12 @@ export function TaskCommentsPanel({
           onChange={(event) => {
             setContent(event.target.value);
             setSubmitError(null);
+          }}
+          onFocus={(event) => {
+            if (focusKey > 0) {
+              const end = event.currentTarget.value.length;
+              event.currentTarget.setSelectionRange(end, end);
+            }
           }}
           onKeyDown={(event) => {
             if (
@@ -363,6 +379,61 @@ export function TaskCommentsPanel({
           </button>
         </div>
       </form>
+
+      {confirming && (
+        <div
+          role="presentation"
+          className="fixed inset-0 z-[100] grid place-items-center bg-slate-950/45 p-4"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setConfirming(false);
+            }
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={`comment-confirm-title-${taskId}`}
+            className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"
+          >
+            <h4
+              id={`comment-confirm-title-${taskId}`}
+              className="text-xl font-bold text-slate-950"
+            >
+              入力内容を確認してください
+            </h4>
+            <p className="mt-2 text-slate-600">
+              {replyTarget === null
+                ? "次の内容でコメントを投稿します。"
+                : `コメント #${replyTarget.comment_id} への返信として投稿します。`}
+            </p>
+            <div className="mt-4 max-h-64 overflow-y-auto whitespace-pre-wrap break-words rounded-xl border border-slate-200 bg-slate-50 p-4 text-slate-900">
+              {content.trim()}
+            </div>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                autoFocus
+                onClick={() => {
+                  setConfirming(false);
+                }}
+                className="min-h-11 rounded-xl border border-slate-300 bg-white px-5 font-semibold text-slate-700 hover:bg-slate-100"
+              >
+                入力へ戻る
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  void submitComment();
+                }}
+                className="min-h-11 rounded-xl bg-blue-600 px-5 font-semibold text-white hover:bg-blue-700"
+              >
+                この内容で投稿する
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <LoadingState

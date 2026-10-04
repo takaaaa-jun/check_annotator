@@ -100,6 +100,16 @@ describe("TaskCommentsPanel integration", () => {
         name: "返信する",
       }),
     );
+    expect(
+      screen.getByRole("dialog", {
+        name: "入力内容を確認してください",
+      }),
+    ).toHaveTextContent("確認しました");
+    await user.click(
+      screen.getByRole("button", {
+        name: "この内容で投稿する",
+      }),
+    );
 
     await waitFor(() => {
       expect(createTaskCommentMock).toHaveBeenCalledWith(
@@ -178,6 +188,17 @@ describe("TaskCommentsPanel integration", () => {
     expect(input).toHaveValue("付与予定ラベル：");
 
     await user.type(input, "tuna{Control>}{Enter}{/Control}");
+
+    expect(
+      screen.getByRole("dialog", {
+        name: "入力内容を確認してください",
+      }),
+    ).toHaveTextContent("付与予定ラベル：tuna");
+    await user.click(
+      screen.getByRole("button", {
+        name: "この内容で投稿する",
+      }),
+    );
 
     await waitFor(() => {
       expect(createTaskCommentMock).toHaveBeenCalledWith(

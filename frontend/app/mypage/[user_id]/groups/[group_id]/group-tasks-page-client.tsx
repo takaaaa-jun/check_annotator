@@ -428,9 +428,7 @@ export function GroupTasksPageClient({
       setOperationMessage(
         `画像${updatedTask.image_id}の状態を「${updatedTask.state_name}」へ更新しました`,
       );
-      if (!opensCommentComposer) {
-        moveToNextTask(taskId);
-      }
+      setActiveTaskId(taskId);
     } catch (error: unknown) {
       setTaskUpdateErrors((currentErrors) => ({
         ...currentErrors,
@@ -444,24 +442,19 @@ export function GroupTasksPageClient({
     }
   }
 
-  function moveToNextTask(taskId: number) {
-    const tasks = taskData?.tasks ?? [];
-    const currentIndex = tasks.findIndex(
-      (task) => task.task_id === taskId,
-    );
-    const nextTask = tasks[currentIndex + 1];
-
-    setActiveTaskId(
-      nextTask?.task_id ?? taskId,
-    );
-  }
-
   function getStateButtonClass(
     stateName: string,
     selected: boolean,
   ): string {
-    const colorClass =
-      stateName === "未着手"
+    const colorClass = selected
+      ? stateName === "未着手"
+        ? "border-red-700 bg-red-600 text-white"
+        : stateName === "完了"
+          ? "border-emerald-700 bg-emerald-600 text-white"
+          : stateName === "付与予定ラベル"
+            ? "border-indigo-700 bg-indigo-600 text-white"
+            : "border-amber-600 bg-amber-400 text-slate-950"
+      : stateName === "未着手"
         ? "border-red-300 bg-red-50 text-red-800 hover:bg-red-100"
         : stateName === "完了"
           ? "border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
@@ -471,9 +464,24 @@ export function GroupTasksPageClient({
 
     return `min-h-10 whitespace-nowrap rounded-lg border px-3 text-sm font-bold shadow-sm disabled:cursor-wait disabled:opacity-50 ${colorClass} ${
       selected
-        ? "ring-2 ring-slate-700 ring-offset-2"
+        ? "scale-[1.03] ring-2 ring-slate-800 ring-offset-2"
         : ""
     }`;
+  }
+
+  function getStateBadgeClass(
+    stateName: string,
+  ): string {
+    const colorClass =
+      stateName === "未着手"
+        ? "border-red-200 bg-red-100 text-red-800"
+        : stateName === "完了"
+          ? "border-emerald-200 bg-emerald-100 text-emerald-800"
+          : stateName === "付与予定ラベル"
+            ? "border-indigo-200 bg-indigo-100 text-indigo-800"
+            : "border-amber-300 bg-amber-100 text-amber-900";
+
+    return `inline-flex whitespace-nowrap rounded-full border px-3 py-1 text-sm font-bold ${colorClass}`;
   }
 
   if (metadataLoading) {
@@ -684,7 +692,7 @@ export function GroupTasksPageClient({
 
       <section
         aria-labelledby="task-list-heading"
-        className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.05)]"
+        className="rounded-2xl border border-slate-200 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.05)]"
       >
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 px-5 py-4 sm:px-6">
           <h2
@@ -757,7 +765,7 @@ export function GroupTasksPageClient({
                       </td>
 
                       <td className="border-b border-slate-100 px-5 py-4 sm:px-6">
-                        <span className="inline-flex rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-700">
+                        <span className={getStateBadgeClass(task.state_name)}>
                           {task.state_name}
                         </span>
                       </td>
@@ -809,8 +817,8 @@ export function GroupTasksPageClient({
                             className="min-h-10 whitespace-nowrap rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-100"
                           >
                             {openCommentsTaskId === task.task_id
-                              ? "詳細を閉じる"
-                              : "履歴を見る"}
+                              ? "コメント一覧を閉じる"
+                              : "コメント一覧"}
                           </button>
                         </div>
 
@@ -849,7 +857,7 @@ export function GroupTasksPageClient({
                                 : 0
                             }
                             onCompleted={() => {
-                              moveToNextTask(task.task_id);
+                              setActiveTaskId(task.task_id);
                             }}
                           />
                         </td>
