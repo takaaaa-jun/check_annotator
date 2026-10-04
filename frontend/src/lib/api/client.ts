@@ -1,70 +1,64 @@
-export const APP_BASE_PATH =
-  process.env.NEXT_PUBLIC_BASE_PATH ?? "/check_annotator";
+import { APIErrorResponse } from './types';
 
-export type ApiErrorBody = {
-  error: {
-    code: string;
-    message: string;
-  };
-};
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
 
-export class ApiError extends Error {
+export class APIError extends Error {
   constructor(
-    public readonly status: number,
-    public readonly code: string,
-    message: string,
+    public status: number,
+    public data: APIErrorResponse
   ) {
-    super(message);
-    this.name = "ApiError";
+    super(data.detail.message);
+    this.name = 'APIError';
   }
 }
 
-function isApiErrorBody(value: unknown): value is ApiErrorBody {
-  if (typeof value !== "object" || value === null || !("error" in value)) {
-    return false;
-  }
+// 画面側コンポーネントとの表記互換性のためのエイリアス
+export { APIError as ApiError };
 
-  const error = value.error;
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    typeof error.code === "string" &&
-    "message" in error &&
-    typeof error.message === "string"
-  );
-}
-
-export async function apiRequest<T>(
-  path: `/api/${string}`,
-  init: RequestInit = {},
+export async function fetchClient<T>(
+  endpoint: string,
+  options: RequestInit = {}
 ): Promise<T> {
-  const headers = new Headers(init.headers);
-  if (init.body !== undefined && !(init.body instanceof FormData)) {
-    headers.set("Content-Type", "application/json");
+  const url = `${API_BASE_URL}${endpoint}`;
+
+  const headers = new Headers(options.headers);
+  if (!headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
   }
 
-  const response = await fetch(`${APP_BASE_PATH}${path}`, {
-    ...init,
-    credentials: "include",
+  // バックエンド側のモックシナリオ制御用ヘッダーを付与
+  const mockScenario = process.env.NEXT_PUBLIC_MOCK_SCENARIO;
+  if (mockScenario) {
+    headers.set('X-Mock-Scenario', mockScenario);
+  }
+
+  const response = await fetch(url, {
+    ...options,
     headers,
+    credentials: 'omit',
   });
 
   if (!response.ok) {
-    const body: unknown = await response.json().catch(() => null);
-    if (isApiErrorBody(body)) {
-      throw new ApiError(response.status, body.error.code, body.error.message);
+    let errorData: APIErrorResponse;
+    try {
+      errorData = await response.json();
+    } catch {
+      errorData = {
+        detail: {
+          code: 'UNEXPECTED_ERROR',
+          message: 'An unexpected error occurred.',
+        },
+      };
     }
-    throw new ApiError(
-      response.status,
-      "UNEXPECTED_RESPONSE",
-      "APIとの通信に失敗しました",
-    );
+    throw new APIError(response.status, errorData);
   }
 
   if (response.status === 204) {
-    return undefined as T;
+    return {} as T;
   }
 
-  return response.json() as Promise<T>;
+  return response.json();
 }
+
+// 既存APIクライアント（auth.ts / users.ts）との互換性のためのエイリアス
+export const apiRequest = fetchClient;

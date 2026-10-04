@@ -1,28 +1,44 @@
 .page {
   display: grid;
-  min-height: 100vh;
+  min-height: calc(100vh - 65px);
   place-items: center;
   padding: 24px;
-  background: #f4f7fb;
+  background:
+    radial-gradient(
+      circle at 15% 15%,
+      rgb(219 234 254 / 75%),
+      transparent 32%
+    ),
+    radial-gradient(
+      circle at 85% 85%,
+      rgb(224 231 255 / 75%),
+      transparent 30%
+    ),
+    #f6f8fc;
 }
 
 .card {
   width: min(100%, 420px);
-  padding: 32px;
-  border: 1px solid #dbe3ee;
-  border-radius: 16px;
+  padding: 36px;
+  border: 1px solid rgb(226 232 240 / 90%);
+  border-radius: 24px;
   background: #ffffff;
-  box-shadow: 0 16px 40px rgb(28 49 78 / 10%);
+  box-shadow:
+    0 24px 70px rgb(15 23 42 / 10%),
+    0 2px 8px rgb(15 23 42 / 5%);
 }
 
 .title {
   margin: 0 0 8px;
-  font-size: 1.75rem;
+  color: #0f172a;
+  font-size: 1.875rem;
+  line-height: 1.25;
+  letter-spacing: -0.025em;
 }
 
 .description {
   margin: 0 0 28px;
-  color: #526173;
+  color: #64748b;
 }
 
 .form,
@@ -36,33 +52,46 @@
 }
 
 .field label {
+  color: #334155;
+  font-size: 0.875rem;
   font-weight: 700;
 }
 
 .field input {
-  min-height: 44px;
-  padding: 10px 12px;
-  border: 1px solid #aebdce;
-  border-radius: 8px;
-  color: #171717;
+  min-height: 48px;
+  padding: 11px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  color: #0f172a;
   background: #ffffff;
   font: inherit;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 4%);
 }
 
 .field input:focus-visible {
-  outline: 3px solid rgb(31 111 235 / 25%);
-  border-color: #1f6feb;
+  border-color: #2563eb;
+  outline: 3px solid rgb(37 99 235 / 18%);
 }
 
 .submit {
-  min-height: 44px;
+  min-height: 48px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 12px;
   color: #ffffff;
-  background: #195eb5;
+  background: linear-gradient(
+    135deg,
+    #2563eb,
+    #4f46e5
+  );
   font: inherit;
   font-weight: 700;
   cursor: pointer;
+  box-shadow: 0 8px 20px rgb(37 99 235 / 22%);
+}
+
+.submit:not(:disabled):hover {
+  box-shadow: 0 10px 24px rgb(37 99 235 / 28%);
+  transform: translateY(-1px);
 }
 
 .submit:disabled {
@@ -72,5 +101,21 @@
 
 .error {
   margin: 0;
+  padding: 12px 14px;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
   color: #b42318;
+  background: #fef2f2;
+  font-size: 0.875rem;
+}
+
+@media (max-width: 480px) {
+  .page {
+    padding: 16px;
+  }
+
+  .card {
+    padding: 28px 22px;
+    border-radius: 20px;
+  }
 }
