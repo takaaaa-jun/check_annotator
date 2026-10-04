@@ -23,6 +23,12 @@ import {
   getCommentSubmitError,
   validateCommentContent,
 } from "./comment-form";
+import { FeedbackMessage } from "../../components/feedback-message";
+import {
+  EmptyState,
+  ErrorState,
+  LoadingState,
+} from "../../components/async-state";
 
 type TaskCommentsPanelProps = {
   taskId: number;
@@ -52,6 +58,8 @@ export function TaskCommentsPanel({
   const [submitting, setSubmitting] =
     useState(false);
   const [submitError, setSubmitError] =
+    useState<string | null>(null);
+  const [submitSuccess, setSubmitSuccess] =
     useState<string | null>(null);
   const submittingRef = useRef(false);
 
@@ -136,6 +144,7 @@ export function TaskCommentsPanel({
     submittingRef.current = true;
     setSubmitting(true);
     setSubmitError(null);
+    setSubmitSuccess(null);
 
     try {
       const createdComment =
@@ -177,6 +186,11 @@ export function TaskCommentsPanel({
 
       setContent("");
       setReplyTarget(null);
+      setSubmitSuccess(
+        createdComment.parent_id === null
+          ? "コメントを投稿しました"
+          : "返信を投稿しました",
+      );
     } catch (error: unknown) {
       const nextError =
         getCommentSubmitError(error);
@@ -240,6 +254,11 @@ export function TaskCommentsPanel({
         }}
         className="mb-5 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
       >
+        {submitSuccess !== null && (
+          <div className="mb-3">
+            <FeedbackMessage message={submitSuccess} />
+          </div>
+        )}
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <label
             htmlFor={`comment-content-${taskId}`}
@@ -324,38 +343,28 @@ export function TaskCommentsPanel({
       </form>
 
       {loading ? (
-        <p
-          role="status"
-          aria-live="polite"
-          className="py-6 text-center text-sm text-slate-600"
-        >
-          コメントを読み込み中...
-        </p>
+        <LoadingState
+          message="コメントを読み込み中..."
+          compact
+        />
       ) : loadError !== null ? (
-        <div
-          role="alert"
-          className="rounded-xl border border-red-200 bg-red-50 p-4"
-        >
-          <p className="text-sm font-medium text-red-700">
-            {loadError.message}
-          </p>
-          {loadError.retryable && (
-            <button
-              type="button"
-              onClick={() => {
-                setReloadKey((value) => value + 1);
-              }}
-              className="mt-3 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-            >
-              再試行
-            </button>
-          )}
-        </div>
+        <ErrorState
+          message={loadError.message}
+          compact
+          onRetry={
+            loadError.retryable
+              ? () => {
+                  setReloadKey((value) => value + 1);
+                }
+              : undefined
+          }
+        />
       ) : commentData === null ||
         commentData.comments.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-600">
-          コメントはまだありません
-        </p>
+        <EmptyState
+          message="コメントはまだありません"
+          compact
+        />
       ) : (
         <ol className="grid gap-3">
           {commentData.comments.map((comment) => (
