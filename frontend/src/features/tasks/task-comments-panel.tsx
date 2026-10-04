@@ -1,10 +1,15 @@
 import {
   useEffect,
+  useRef,
   useState,
 } from "react";
 
-import type { TaskCommentsResponse } from "../../lib/api/types";
+import type {
+  Comment,
+  TaskCommentsResponse,
+} from "../../lib/api/types";
 import {
+  createTaskComment,
   getTaskComments,
   type TaskCommentsPageSize,
 } from "../../lib/api/tasks";
@@ -13,6 +18,11 @@ import {
   getCommentsLoadError,
   type CommentsLoadError,
 } from "./comments";
+import {
+  COMMENT_MAX_LENGTH,
+  getCommentSubmitError,
+  validateCommentContent,
+} from "./comment-form";
 
 type TaskCommentsPanelProps = {
   taskId: number;
@@ -36,6 +46,14 @@ export function TaskCommentsPanel({
   const [loadError, setLoadError] =
     useState<CommentsLoadError | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [content, setContent] = useState("");
+  const [replyTarget, setReplyTarget] =
+    useState<Comment | null>(null);
+  const [submitting, setSubmitting] =
+    useState(false);
+  const [submitError, setSubmitError] =
+    useState<string | null>(null);
+  const submittingRef = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -95,6 +113,86 @@ export function TaskCommentsPanel({
       ? 1
       : pagination.total_pages;
 
+  const trimmedContentLength =
+    content.trim().length;
+
+  async function handleSubmit(
+    event: React.FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
+
+    if (submittingRef.current) {
+      return;
+    }
+
+    const validationError =
+      validateCommentContent(content);
+
+    if (validationError !== null) {
+      setSubmitError(validationError);
+      return;
+    }
+
+    submittingRef.current = true;
+    setSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const createdComment =
+        await createTaskComment(taskId, {
+          content: content.trim(),
+          parentId:
+            replyTarget?.comment_id ?? null,
+        });
+
+      const previousTotal =
+        commentData?.pagination.total ?? 0;
+      const nextTotal = previousTotal + 1;
+      const nextTotalPages = Math.max(
+        1,
+        Math.ceil(nextTotal / pageSize),
+      );
+
+      if (
+        commentData !== null &&
+        page === nextTotalPages
+      ) {
+        setCommentData({
+          ...commentData,
+          comments: [
+            ...commentData.comments,
+            createdComment,
+          ],
+          pagination: {
+            ...commentData.pagination,
+            total: nextTotal,
+            total_pages: nextTotalPages,
+          },
+        });
+      } else if (page !== nextTotalPages) {
+        setPage(nextTotalPages);
+      } else {
+        setReloadKey((value) => value + 1);
+      }
+
+      setContent("");
+      setReplyTarget(null);
+    } catch (error: unknown) {
+      const nextError =
+        getCommentSubmitError(error);
+
+      if (nextError.unauthorized) {
+        onUnauthorized();
+        return;
+      }
+
+      setSubmitError(nextError.message);
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
+    }
+  }
+
   return (
     <section
       aria-label={`画像${imageId}のコメント`}
@@ -135,6 +233,95 @@ export function TaskCommentsPanel({
           </select>
         </div>
       </div>
+
+      <form
+        onSubmit={(event) => {
+          void handleSubmit(event);
+        }}
+        className="mb-5 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+      >
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <label
+            htmlFor={`comment-content-${taskId}`}
+            className="font-semibold text-slate-900"
+          >
+            {replyTarget === null
+              ? "新しいコメント"
+              : `コメント #${replyTarget.comment_id} へ返信`}
+          </label>
+
+          {replyTarget !== null && (
+            <button
+              type="button"
+              disabled={submitting}
+              onClick={() => {
+                setReplyTarget(null);
+                setSubmitError(null);
+              }}
+              className="text-sm font-semibold text-blue-700 hover:text-blue-900 disabled:cursor-not-allowed disabled:text-slate-400"
+            >
+              返信を取り消す
+            </button>
+          )}
+        </div>
+
+        {replyTarget !== null && (
+          <p className="mb-3 line-clamp-2 rounded-lg bg-violet-50 px-3 py-2 text-sm text-violet-800">
+            {replyTarget.user_name}: {replyTarget.content}
+          </p>
+        )}
+
+        <textarea
+          id={`comment-content-${taskId}`}
+          value={content}
+          rows={4}
+          disabled={submitting}
+          aria-describedby={`comment-content-help-${taskId}`}
+          aria-invalid={submitError !== null}
+          onChange={(event) => {
+            setContent(event.target.value);
+            setSubmitError(null);
+          }}
+          placeholder="コメントを入力してください"
+          className="w-full resize-y rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-inner placeholder:text-slate-400 disabled:cursor-wait disabled:bg-slate-100"
+        />
+
+        <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p
+              id={`comment-content-help-${taskId}`}
+              className={`text-xs ${
+                trimmedContentLength > COMMENT_MAX_LENGTH
+                  ? "font-semibold text-red-700"
+                  : "text-slate-500"
+              }`}
+            >
+              前後の空白を除いて{trimmedContentLength} / {COMMENT_MAX_LENGTH}文字
+            </p>
+
+            {submitError !== null && (
+              <p
+                role="alert"
+                className="mt-1 text-sm font-medium text-red-700"
+              >
+                {submitError}
+              </p>
+            )}
+          </div>
+
+          <button
+            type="submit"
+            disabled={submitting}
+            className="min-h-10 rounded-lg bg-blue-600 px-5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-wait disabled:bg-slate-400"
+          >
+            {submitting
+              ? "送信中..."
+              : replyTarget === null
+                ? "投稿する"
+                : "返信する"}
+          </button>
+        </div>
+      </form>
 
       {loading ? (
         <p
@@ -205,6 +392,18 @@ export function TaskCommentsPanel({
                   <dd>{formatDateTime(comment.updated_at)}</dd>
                 </div>
               </dl>
+
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={() => {
+                  setReplyTarget(comment);
+                  setSubmitError(null);
+                }}
+                className="mt-3 rounded-lg px-3 py-1.5 text-sm font-semibold text-blue-700 hover:bg-blue-50 disabled:cursor-not-allowed disabled:text-slate-400"
+              >
+                このコメントに返信
+              </button>
             </li>
           ))}
         </ol>
