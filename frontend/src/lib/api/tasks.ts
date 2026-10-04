@@ -1,5 +1,6 @@
 import { apiRequest } from "./client";
 import type {
+  CreatedComment,
   TaskCommentsResponse,
   TaskStateResponse,
 } from "./types";
@@ -12,6 +13,11 @@ export type TaskCommentsPageSize =
 export type GetTaskCommentsOptions = {
   page?: number;
   pageSize?: TaskCommentsPageSize;
+};
+
+export type CreateTaskCommentInput = {
+  content: string;
+  parentId: number | null;
 };
 
 export function getTaskComments(
@@ -30,6 +36,22 @@ export function getTaskComments(
 
   return apiRequest<TaskCommentsResponse>(
     `/api/tasks/${taskId}/comments?${searchParams.toString()}`,
+  );
+}
+
+export function createTaskComment(
+  taskId: number,
+  input: CreateTaskCommentInput,
+): Promise<CreatedComment> {
+  return apiRequest<CreatedComment>(
+    `/api/tasks/${taskId}/comments`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        content: input.content,
+        parent_id: input.parentId,
+      }),
+    },
   );
 }
 
