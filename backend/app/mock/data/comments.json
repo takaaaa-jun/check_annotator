@@ -1,0 +1,31 @@
+{
+  "tasks": [
+    {
+      "task_id": 1,
+      "comments": [
+        {
+          "comment_id": 1,
+          "user_id": 1,
+          "user_name": "takahashi",
+          "parent_id": null,
+          "content": "付与予定ラベル: tuna",
+          "created_at": "2026-10-04T01:00:00Z",
+          "updated_at": "2026-10-04T01:00:00Z"
+        },
+        {
+          "comment_id": 2,
+          "user_id": 4,
+          "user_name": "admin-user",
+          "parent_id": 1,
+          "content": "ラベルを確認しました",
+          "created_at": "2026-10-04T01:10:00Z",
+          "updated_at": "2026-10-04T01:10:00Z"
+        }
+      ]
+    },
+    {
+      "task_id": 2,
+      "comments": []
+    }
+  ]
+}

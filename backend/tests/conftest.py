@@ -5,16 +5,20 @@ from datetime import UTC, datetime
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import (
+    Session,
+    sessionmaker,
+)
 from sqlalchemy.pool import StaticPool
 
-os.environ.setdefault("DB_USER", "test")
-os.environ.setdefault("DB_PASSWORD", "test")
-os.environ.setdefault("DB_HOST", "localhost")
-os.environ.setdefault("DB_NAME", "test")
-os.environ.setdefault(
-    "AUTH_SECRET_KEY",
-    "test-secret-key-for-login-tests-2026",
+
+os.environ["DB_USER"] = "test"
+os.environ["DB_PASSWORD"] = "test"
+os.environ["DB_HOST"] = "localhost"
+os.environ["DB_NAME"] = "test"
+os.environ["APP_DATA_MODE"] = "database"
+os.environ["AUTH_SECRET_KEY"] = (
+    "test-secret-key-for-login-tests-2026"
 )
 
 from app.core.security import password_hash  # noqa: E402

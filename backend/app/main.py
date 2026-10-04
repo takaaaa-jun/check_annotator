@@ -1,10 +1,23 @@
-from fastapi import FastAPI
-from fastapi.exceptions import RequestValidationError
-from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 
-from app.api.routers.auth import router as auth_router
-from app.api.routers.users import router as users_router
-from app.api.routers.tasks import router as tasks_router
+from fastapi import FastAPI
+from fastapi.exceptions import (
+    RequestValidationError,
+)
+from fastapi.middleware.cors import (
+    CORSMiddleware,
+)
+
+from app.api.routers.auth import (
+    router as auth_router,
+)
+from app.api.routers.tasks import (
+    router as tasks_router,
+)
+from app.api.routers.users import (
+    router as users_router,
+)
+from app.core.config import get_cors_origins
 from app.core.exceptions import (
     AuthenticationRequiredError,
     CommentNotFoundError,
@@ -23,10 +36,22 @@ from app.core.exceptions import (
     user_not_found_exception_handler,
     validation_exception_handler,
 )
-from app.core.config import get_cors_origins
+from app.mock.startup import (
+    initialize_mock_database,
+)
 
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(
+    _app: FastAPI,
+):
+    initialize_mock_database()
+    yield
+
+
+app = FastAPI(
+    lifespan=lifespan,
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -40,22 +65,42 @@ app.add_exception_handler(
     AuthenticationRequiredError,
     authentication_exception_handler,
 )
+
 app.add_exception_handler(
     PermissionDeniedError,
     permission_exception_handler,
 )
+
 app.add_exception_handler(
     UserNotFoundError,
     user_not_found_exception_handler,
 )
-app.add_exception_handler(GroupNotFoundError, group_not_found_exception_handler)
-app.add_exception_handler(StateNotFoundError, state_not_found_exception_handler)
-app.add_exception_handler(TaskNotFoundError, task_not_found_exception_handler)
-app.add_exception_handler(CommentNotFoundError, comment_not_found_exception_handler)
+
+app.add_exception_handler(
+    GroupNotFoundError,
+    group_not_found_exception_handler,
+)
+
+app.add_exception_handler(
+    StateNotFoundError,
+    state_not_found_exception_handler,
+)
+
+app.add_exception_handler(
+    TaskNotFoundError,
+    task_not_found_exception_handler,
+)
+
+app.add_exception_handler(
+    CommentNotFoundError,
+    comment_not_found_exception_handler,
+)
+
 app.add_exception_handler(
     RequestValidationError,
     validation_exception_handler,
 )
+
 app.add_exception_handler(
     Exception,
     internal_exception_handler,
@@ -68,4 +113,6 @@ app.include_router(tasks_router)
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+    }
