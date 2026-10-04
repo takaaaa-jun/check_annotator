@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import {
+  Fragment,
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -26,6 +28,7 @@ import {
   getTaskStateUpdateError,
   replaceUpdatedTask,
 } from "@/src/features/tasks/state-update";
+import { TaskCommentsPanel } from "@/src/features/tasks/task-comments-panel";
 
 type GroupTasksPageClientProps = {
   userId: number;
@@ -129,8 +132,15 @@ export function GroupTasksPageClient({
   const [taskUpdateErrors, setTaskUpdateErrors] =
     useState<Record<number, string>>({});
 
+  const [openCommentsTaskId, setOpenCommentsTaskId] =
+    useState<number | null>(null);
+
   const updatingTaskIdsRef =
     useRef(new Set<number>());
+
+  const handleUnauthorized = useCallback(() => {
+    router.replace("/login");
+  }, [router]);
 
   const [
     metadataReloadKey,
@@ -676,14 +686,21 @@ export function GroupTasksPageClient({
                   >
                     状態変更
                   </th>
+
+                  <th
+                    scope="col"
+                    className="border-b border-slate-200 px-5 py-3.5 text-left text-xs font-bold uppercase tracking-wide text-slate-500 sm:px-6"
+                  >
+                    コメント
+                  </th>
                 </tr>
               </thead>
 
               <tbody>
                 {taskData.tasks.map(
                   (task) => (
+                    <Fragment key={task.task_id}>
                     <tr
-                      key={task.task_id}
                       className="hover:bg-blue-50/50"
                     >
                       <td className="border-b border-slate-100 px-5 py-4 font-semibold text-slate-900 sm:px-6">
@@ -765,7 +782,40 @@ export function GroupTasksPageClient({
                           </p>
                         )}
                       </td>
+
+                      <td className="border-b border-slate-100 px-5 py-4 sm:px-6">
+                        <button
+                          type="button"
+                          aria-expanded={openCommentsTaskId === task.task_id}
+                          aria-controls={`task-comments-${task.task_id}`}
+                          onClick={() => {
+                            setOpenCommentsTaskId((currentTaskId) =>
+                              currentTaskId === task.task_id
+                                ? null
+                                : task.task_id,
+                            );
+                          }}
+                          className="min-h-10 whitespace-nowrap rounded-lg border border-blue-200 bg-blue-50 px-4 text-sm font-semibold text-blue-700 hover:border-blue-300 hover:bg-blue-100"
+                        >
+                          {openCommentsTaskId === task.task_id
+                            ? "コメントを閉じる"
+                            : "コメントを表示"}
+                        </button>
+                      </td>
                     </tr>
+
+                    {openCommentsTaskId === task.task_id && (
+                      <tr id={`task-comments-${task.task_id}`}>
+                        <td colSpan={5} className="p-0">
+                          <TaskCommentsPanel
+                            taskId={task.task_id}
+                            imageId={task.image_id}
+                            onUnauthorized={handleUnauthorized}
+                          />
+                        </td>
+                      </tr>
+                    )}
+                    </Fragment>
                   ),
                 )}
               </tbody>

@@ -7,7 +7,10 @@ import {
 } from "vitest";
 
 import { apiRequest } from "./client";
-import { updateTaskState } from "./tasks";
+import {
+  getTaskComments,
+  updateTaskState,
+} from "./tasks";
 
 vi.mock("./client", () => ({
   apiRequest: vi.fn(),
@@ -67,5 +70,42 @@ describe("updateTaskState", () => {
     await expect(
       updateTaskState(10, 2),
     ).rejects.toBe(apiError);
+  });
+});
+
+describe("getTaskComments", () => {
+  const response = {
+    task_id: 10,
+    comments: [],
+    pagination: {
+      page: 1,
+      page_size: 50,
+      total: 0,
+      total_pages: 0,
+    },
+  };
+
+  it("初期条件でコメント一覧APIを呼び出す", async () => {
+    apiRequestMock.mockResolvedValue(response);
+
+    const result = await getTaskComments(10);
+
+    expect(apiRequestMock).toHaveBeenCalledWith(
+      "/api/tasks/10/comments?page=1&page_size=50",
+    );
+    expect(result).toEqual(response);
+  });
+
+  it("ページ番号と表示件数を指定できる", async () => {
+    apiRequestMock.mockResolvedValue(response);
+
+    await getTaskComments(10, {
+      page: 2,
+      pageSize: 10,
+    });
+
+    expect(apiRequestMock).toHaveBeenCalledWith(
+      "/api/tasks/10/comments?page=2&page_size=10",
+    );
   });
 });
