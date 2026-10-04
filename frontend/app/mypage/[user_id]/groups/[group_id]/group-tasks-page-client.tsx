@@ -153,6 +153,12 @@ export function GroupTasksPageClient({
   const updatingTaskIdsRef =
     useRef(new Set<number>());
 
+  const taskScrollRef =
+    useRef<HTMLDivElement | null>(null);
+
+  const taskRowRefs =
+    useRef(new Map<number, HTMLTableRowElement>());
+
   const handleUnauthorized = useCallback(() => {
     router.replace("/login");
   }, [router]);
@@ -295,9 +301,7 @@ export function GroupTasksPageClient({
         }
 
         setTaskData(result);
-        setActiveTaskId(
-          result.tasks[0]?.task_id ?? null,
-        );
+        setActiveTaskId(null);
         setOpenCommentsTaskId(null);
         setCommentComposer(null);
         setTaskUpdateErrors({});
@@ -382,6 +386,9 @@ export function GroupTasksPageClient({
         focusKey:
           (currentValue?.focusKey ?? 0) + 1,
       }));
+    } else {
+      setOpenCommentsTaskId(null);
+      setCommentComposer(null);
     }
 
     if (updatingTaskIdsRef.current.has(taskId)) {
@@ -428,7 +435,24 @@ export function GroupTasksPageClient({
       setOperationMessage(
         `画像${updatedTask.image_id}の状態を「${updatedTask.state_name}」へ更新しました`,
       );
-      setActiveTaskId(taskId);
+      setGroup((currentGroup) =>
+        currentGroup === null
+          ? null
+          : {
+              ...currentGroup,
+              state_counts:
+                currentGroup.state_counts.map((state) => ({
+                  ...state,
+                  count:
+                    state.state_id === currentTask.state_id
+                      ? Math.max(0, state.count - 1)
+                      : state.state_id === updatedTask.state_id
+                        ? state.count + 1
+                        : state.count,
+                })),
+            },
+      );
+      highlightTask(taskId);
     } catch (error: unknown) {
       setTaskUpdateErrors((currentErrors) => ({
         ...currentErrors,
@@ -440,6 +464,27 @@ export function GroupTasksPageClient({
         new Set(updatingTaskIdsRef.current),
       );
     }
+  }
+
+  function highlightTask(taskId: number) {
+    setActiveTaskId(taskId);
+
+    requestAnimationFrame(() => {
+      const container = taskScrollRef.current;
+      const row = taskRowRefs.current.get(taskId);
+
+      if (container === null || row === undefined) {
+        return;
+      }
+
+      container.scrollTo({
+        top:
+          row.offsetTop -
+          container.clientHeight / 2 +
+          row.clientHeight / 2,
+        behavior: "smooth",
+      });
+    });
   }
 
   function getStateButtonClass(
@@ -556,7 +601,9 @@ export function GroupTasksPageClient({
     !tasksLoading;
 
   return (
-    <main className="mx-auto min-h-[calc(100vh-65px)] max-w-6xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+    <main className="h-[calc(100vh-65px)] overflow-hidden px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto grid h-full max-w-[1600px] grid-cols-[15rem_minmax(0,1fr)] gap-5 xl:grid-cols-[18rem_minmax(0,1fr)]">
+      <aside className="min-h-0 overflow-y-auto py-5">
       <div className="mb-4">
         <Link
           href={`/mypage/${userId}/groups`}
@@ -566,7 +613,7 @@ export function GroupTasksPageClient({
         </Link>
       </div>
 
-      <header className="mb-8">
+      <header className="mb-5">
         <p className="mb-2 text-sm font-medium text-blue-700">
           ログイン中: {currentUser.user_name}
         </p>
@@ -582,15 +629,15 @@ export function GroupTasksPageClient({
         </p>
       </header>
 
-      {operationMessage !== null && (
-        <div className="mb-6">
+      <div className="mb-5 min-h-20">
+        {operationMessage !== null && (
           <FeedbackMessage message={operationMessage} />
-        </div>
-      )}
+        )}
+      </div>
 
       <section
         aria-labelledby="task-filter-heading"
-        className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)] sm:p-6"
+        className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)]"
       >
         <h2
           id="task-filter-heading"
@@ -599,7 +646,7 @@ export function GroupTasksPageClient({
           表示条件
         </h2>
 
-        <div className="grid gap-5 sm:grid-cols-2">
+        <div className="grid gap-5">
           <div className="grid gap-2">
             <label
               htmlFor="state-filter"
@@ -663,11 +710,14 @@ export function GroupTasksPageClient({
           </div>
         </div>
       </section>
+      </aside>
+
+      <div className="flex min-h-0 flex-col py-5">
 
       {tasksError !== null && (
         <div
           role="alert"
-          className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4"
+          className="mb-3 shrink-0 rounded-lg border border-red-200 bg-red-50 p-4"
         >
           <p className="text-red-700">
             {tasksError.message}
@@ -692,7 +742,7 @@ export function GroupTasksPageClient({
 
       <section
         aria-labelledby="task-list-heading"
-        className="rounded-2xl border border-slate-200 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.05)]"
+        className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.05)]"
       >
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 px-5 py-4 sm:px-6">
           <h2
@@ -715,9 +765,12 @@ export function GroupTasksPageClient({
             <EmptyState message="該当するタスクはありません" />
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div
+            ref={taskScrollRef}
+            className="min-h-0 flex-1 overflow-auto"
+          >
             <table className="w-full border-collapse">
-              <thead className="bg-slate-50">
+              <thead className="sticky top-0 z-10 bg-slate-50 shadow-sm">
                 <tr>
                   <th
                     scope="col"
@@ -754,6 +807,13 @@ export function GroupTasksPageClient({
                   (task) => (
                     <Fragment key={task.task_id}>
                     <tr
+                      ref={(element) => {
+                        if (element === null) {
+                          taskRowRefs.current.delete(task.task_id);
+                        } else {
+                          taskRowRefs.current.set(task.task_id, element);
+                        }
+                      }}
                       className={
                         activeTaskId === task.task_id
                           ? "bg-blue-100/80 ring-2 ring-inset ring-blue-400"
@@ -796,9 +856,7 @@ export function GroupTasksPageClient({
                               task.state_id === state.state_id,
                             )}
                           >
-                            {updatingTaskIds.has(task.task_id)
-                              ? "更新中..."
-                              : state.state_name}
+                            {state.state_name}
                           </button>
                           ))}
 
@@ -857,7 +915,7 @@ export function GroupTasksPageClient({
                                 : 0
                             }
                             onCompleted={() => {
-                              setActiveTaskId(task.task_id);
+                              highlightTask(task.task_id);
                             }}
                           />
                         </td>
@@ -874,7 +932,7 @@ export function GroupTasksPageClient({
 
       <nav
         aria-label="タスク一覧のページ移動"
-        className="mt-6 flex items-center justify-center gap-4"
+        className="mt-3 flex shrink-0 items-center justify-center gap-4"
       >
         <button
           type="button"
@@ -908,6 +966,8 @@ export function GroupTasksPageClient({
           次へ
         </button>
       </nav>
+      </div>
+      </div>
     </main>
   );
 }
