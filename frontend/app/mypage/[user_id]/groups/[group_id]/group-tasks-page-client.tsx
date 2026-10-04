@@ -3,12 +3,14 @@
 import Link from "next/link";
 import {
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { useRouter } from "next/navigation";
 
 import { getCurrentUser } from "@/src/lib/api/auth";
 import { ApiError } from "@/src/lib/api/client";
+import { updateTaskState } from "@/src/lib/api/tasks";
 import type {
   CurrentUser,
   GroupProgress,
@@ -20,6 +22,10 @@ import {
   type GroupTasksPageSize,
 } from "@/src/lib/api/users";
 import { formatDateTime } from "@/src/lib/format/date-time";
+import {
+  getTaskStateUpdateError,
+  replaceUpdatedTask,
+} from "@/src/features/tasks/state-update";
 
 type GroupTasksPageClientProps = {
   userId: number;
@@ -113,6 +119,18 @@ export function GroupTasksPageClient({
 
   const [tasksError, setTasksError] =
     useState<LoadError | null>(null);
+
+  const [selectedStateIds, setSelectedStateIds] =
+    useState<Record<number, number>>({});
+
+  const [updatingTaskIds, setUpdatingTaskIds] =
+    useState<Set<number>>(() => new Set());
+
+  const [taskUpdateErrors, setTaskUpdateErrors] =
+    useState<Record<number, string>>({});
+
+  const updatingTaskIdsRef =
+    useRef(new Set<number>());
 
   const [
     metadataReloadKey,
@@ -252,6 +270,15 @@ export function GroupTasksPageClient({
         }
 
         setTaskData(result);
+        setSelectedStateIds(
+          Object.fromEntries(
+            result.tasks.map((task) => [
+              task.task_id,
+              task.state_id,
+            ]),
+          ),
+        );
+        setTaskUpdateErrors({});
         setTasksLoading(false);
       } catch (error: unknown) {
         if (!active) {
@@ -311,6 +338,74 @@ export function GroupTasksPageClient({
     );
 
     setPage(1);
+  }
+
+  async function handleTaskStateUpdate(
+    taskId: number,
+  ) {
+    if (updatingTaskIdsRef.current.has(taskId)) {
+      return;
+    }
+
+    const nextStateId =
+      selectedStateIds[taskId];
+
+    const previousStateId =
+      taskData?.tasks.find(
+        (task) => task.task_id === taskId,
+      )?.state_id;
+
+    if (
+      nextStateId === undefined ||
+      previousStateId === undefined
+    ) {
+      return;
+    }
+
+    updatingTaskIdsRef.current.add(taskId);
+    setUpdatingTaskIds(
+      new Set(updatingTaskIdsRef.current),
+    );
+    setTaskUpdateErrors((currentErrors) => {
+      const nextErrors = { ...currentErrors };
+      delete nextErrors[taskId];
+      return nextErrors;
+    });
+
+    try {
+      const updatedTask =
+        await updateTaskState(
+          taskId,
+          nextStateId,
+        );
+
+      setTaskData((currentTaskData) =>
+        currentTaskData === null
+          ? null
+          : replaceUpdatedTask(
+              currentTaskData,
+              updatedTask,
+            ),
+      );
+      setSelectedStateIds((currentValues) => ({
+        ...currentValues,
+        [taskId]: updatedTask.state_id,
+      }));
+    } catch (error: unknown) {
+      setSelectedStateIds((currentValues) => ({
+        ...currentValues,
+        [taskId]: previousStateId,
+      }));
+      setTaskUpdateErrors((currentErrors) => ({
+        ...currentErrors,
+        [taskId]: getTaskStateUpdateError(error),
+      }));
+    } finally {
+      updatingTaskIdsRef.current.delete(taskId);
+      setUpdatingTaskIds(
+        new Set(updatingTaskIdsRef.current),
+      );
+    }
   }
 
   if (metadataLoading) {
@@ -574,6 +669,13 @@ export function GroupTasksPageClient({
                   >
                     最終更新日時
                   </th>
+
+                  <th
+                    scope="col"
+                    className="border-b border-slate-200 px-5 py-3.5 text-left text-xs font-bold uppercase tracking-wide text-slate-500 sm:px-6"
+                  >
+                    状態変更
+                  </th>
                 </tr>
               </thead>
 
@@ -597,6 +699,70 @@ export function GroupTasksPageClient({
                       <td className="border-b border-slate-100 px-5 py-4 text-sm text-slate-600 sm:px-6">
                         {formatDateTime(
                           task.updated_at,
+                        )}
+                      </td>
+
+                      <td className="border-b border-slate-100 px-5 py-4 sm:px-6">
+                        <div className="flex min-w-64 flex-wrap items-center gap-2">
+                          <label
+                            htmlFor={`task-state-${task.task_id}`}
+                            className="sr-only"
+                          >
+                            画像{task.image_id}の状態
+                          </label>
+
+                          <select
+                            id={`task-state-${task.task_id}`}
+                            value={selectedStateIds[task.task_id] ?? task.state_id}
+                            onChange={(event) => {
+                              const nextStateId = Number(event.target.value);
+                              setSelectedStateIds((currentValues) => ({
+                                ...currentValues,
+                                [task.task_id]: nextStateId,
+                              }));
+                              setTaskUpdateErrors((currentErrors) => {
+                                const nextErrors = { ...currentErrors };
+                                delete nextErrors[task.task_id];
+                                return nextErrors;
+                              });
+                            }}
+                            disabled={updatingTaskIds.has(task.task_id)}
+                            className="min-h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 disabled:cursor-wait disabled:bg-slate-100"
+                          >
+                            {group.state_counts.map((state) => (
+                              <option
+                                key={state.state_id}
+                                value={state.state_id}
+                              >
+                                {state.state_name}
+                              </option>
+                            ))}
+                          </select>
+
+                          <button
+                            type="button"
+                            disabled={
+                              updatingTaskIds.has(task.task_id) ||
+                              (selectedStateIds[task.task_id] ?? task.state_id) === task.state_id
+                            }
+                            onClick={() => {
+                              void handleTaskStateUpdate(task.task_id);
+                            }}
+                            className="min-h-10 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                          >
+                            {updatingTaskIds.has(task.task_id)
+                              ? "更新中..."
+                              : "更新"}
+                          </button>
+                        </div>
+
+                        {taskUpdateErrors[task.task_id] !== undefined && (
+                          <p
+                            role="alert"
+                            className="mt-2 max-w-80 text-sm font-medium text-red-700"
+                          >
+                            {taskUpdateErrors[task.task_id]}
+                          </p>
                         )}
                       </td>
                     </tr>
