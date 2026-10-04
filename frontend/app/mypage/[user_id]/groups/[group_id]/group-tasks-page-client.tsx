@@ -128,9 +128,6 @@ export function GroupTasksPageClient({
   const [tasksError, setTasksError] =
     useState<LoadError | null>(null);
 
-  const [selectedStateIds, setSelectedStateIds] =
-    useState<Record<number, number>>({});
-
   const [updatingTaskIds, setUpdatingTaskIds] =
     useState<Set<number>>(() => new Set());
 
@@ -139,6 +136,16 @@ export function GroupTasksPageClient({
 
   const [openCommentsTaskId, setOpenCommentsTaskId] =
     useState<number | null>(null);
+
+  const [activeTaskId, setActiveTaskId] =
+    useState<number | null>(null);
+
+  const [commentComposer, setCommentComposer] =
+    useState<{
+      taskId: number;
+      initialContent: string;
+      focusKey: number;
+    } | null>(null);
 
   const [operationMessage, setOperationMessage] =
     useState<string | null>(null);
@@ -288,14 +295,11 @@ export function GroupTasksPageClient({
         }
 
         setTaskData(result);
-        setSelectedStateIds(
-          Object.fromEntries(
-            result.tasks.map((task) => [
-              task.task_id,
-              task.state_id,
-            ]),
-          ),
+        setActiveTaskId(
+          result.tasks[0]?.task_id ?? null,
         );
+        setOpenCommentsTaskId(null);
+        setCommentComposer(null);
         setTaskUpdateErrors({});
         setTasksLoading(false);
       } catch (error: unknown) {
@@ -360,22 +364,37 @@ export function GroupTasksPageClient({
 
   async function handleTaskStateUpdate(
     taskId: number,
+    nextStateId: number,
+    nextStateName: string,
   ) {
+    const opensCommentComposer =
+      nextStateName === "コメント" ||
+      nextStateName === "付与予定ラベル";
+
+    if (opensCommentComposer) {
+      setOpenCommentsTaskId(taskId);
+      setCommentComposer((currentValue) => ({
+        taskId,
+        initialContent:
+          nextStateName === "付与予定ラベル"
+            ? "付与予定ラベル："
+            : "",
+        focusKey:
+          (currentValue?.focusKey ?? 0) + 1,
+      }));
+    }
+
     if (updatingTaskIdsRef.current.has(taskId)) {
       return;
     }
 
-    const nextStateId =
-      selectedStateIds[taskId];
-
-    const previousStateId =
-      taskData?.tasks.find(
-        (task) => task.task_id === taskId,
-      )?.state_id;
+    const currentTask = taskData?.tasks.find(
+      (task) => task.task_id === taskId,
+    );
 
     if (
-      nextStateId === undefined ||
-      previousStateId === undefined
+      currentTask === undefined ||
+      currentTask.state_id === nextStateId
     ) {
       return;
     }
@@ -406,18 +425,13 @@ export function GroupTasksPageClient({
               updatedTask,
             ),
       );
-      setSelectedStateIds((currentValues) => ({
-        ...currentValues,
-        [taskId]: updatedTask.state_id,
-      }));
       setOperationMessage(
         `画像${updatedTask.image_id}の状態を「${updatedTask.state_name}」へ更新しました`,
       );
+      if (!opensCommentComposer) {
+        moveToNextTask(taskId);
+      }
     } catch (error: unknown) {
-      setSelectedStateIds((currentValues) => ({
-        ...currentValues,
-        [taskId]: previousStateId,
-      }));
       setTaskUpdateErrors((currentErrors) => ({
         ...currentErrors,
         [taskId]: getTaskStateUpdateError(error),
@@ -428,6 +442,38 @@ export function GroupTasksPageClient({
         new Set(updatingTaskIdsRef.current),
       );
     }
+  }
+
+  function moveToNextTask(taskId: number) {
+    const tasks = taskData?.tasks ?? [];
+    const currentIndex = tasks.findIndex(
+      (task) => task.task_id === taskId,
+    );
+    const nextTask = tasks[currentIndex + 1];
+
+    setActiveTaskId(
+      nextTask?.task_id ?? taskId,
+    );
+  }
+
+  function getStateButtonClass(
+    stateName: string,
+    selected: boolean,
+  ): string {
+    const colorClass =
+      stateName === "未着手"
+        ? "border-red-300 bg-red-50 text-red-800 hover:bg-red-100"
+        : stateName === "完了"
+          ? "border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+          : stateName === "付与予定ラベル"
+            ? "border-indigo-300 bg-indigo-50 text-indigo-800 hover:bg-indigo-100"
+            : "border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100";
+
+    return `min-h-10 whitespace-nowrap rounded-lg border px-3 text-sm font-bold shadow-sm disabled:cursor-wait disabled:opacity-50 ${colorClass} ${
+      selected
+        ? "ring-2 ring-slate-700 ring-offset-2"
+        : ""
+    }`;
   }
 
   if (metadataLoading) {
@@ -690,14 +736,7 @@ export function GroupTasksPageClient({
                     scope="col"
                     className="border-b border-slate-200 px-5 py-3.5 text-left text-xs font-bold uppercase tracking-wide text-slate-500 sm:px-6"
                   >
-                    状態変更
-                  </th>
-
-                  <th
-                    scope="col"
-                    className="border-b border-slate-200 px-5 py-3.5 text-left text-xs font-bold uppercase tracking-wide text-slate-500 sm:px-6"
-                  >
-                    コメント
+                    操作
                   </th>
                 </tr>
               </thead>
@@ -707,7 +746,11 @@ export function GroupTasksPageClient({
                   (task) => (
                     <Fragment key={task.task_id}>
                     <tr
-                      className="hover:bg-blue-50/50"
+                      className={
+                        activeTaskId === task.task_id
+                          ? "bg-blue-100/80 ring-2 ring-inset ring-blue-400"
+                          : "hover:bg-blue-50/50"
+                      }
                     >
                       <td className="border-b border-slate-100 px-5 py-4 font-semibold text-slate-900 sm:px-6">
                         {task.image_id}
@@ -726,56 +769,48 @@ export function GroupTasksPageClient({
                       </td>
 
                       <td className="border-b border-slate-100 px-5 py-4 sm:px-6">
-                        <div className="flex min-w-64 flex-wrap items-center gap-2">
-                          <label
-                            htmlFor={`task-state-${task.task_id}`}
-                            className="sr-only"
-                          >
-                            画像{task.image_id}の状態
-                          </label>
-
-                          <select
-                            id={`task-state-${task.task_id}`}
-                            value={selectedStateIds[task.task_id] ?? task.state_id}
-                            onChange={(event) => {
-                              const nextStateId = Number(event.target.value);
-                              setSelectedStateIds((currentValues) => ({
-                                ...currentValues,
-                                [task.task_id]: nextStateId,
-                              }));
-                              setTaskUpdateErrors((currentErrors) => {
-                                const nextErrors = { ...currentErrors };
-                                delete nextErrors[task.task_id];
-                                return nextErrors;
-                              });
-                            }}
-                            disabled={updatingTaskIds.has(task.task_id)}
-                            className="min-h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 disabled:cursor-wait disabled:bg-slate-100"
-                          >
-                            {group.state_counts.map((state) => (
-                              <option
-                                key={state.state_id}
-                                value={state.state_id}
-                              >
-                                {state.state_name}
-                              </option>
-                            ))}
-                          </select>
-
+                        <div className="flex min-w-[32rem] flex-wrap items-center gap-2">
+                          {group.state_counts.map((state) => (
                           <button
+                            key={state.state_id}
                             type="button"
-                            disabled={
-                              updatingTaskIds.has(task.task_id) ||
-                              (selectedStateIds[task.task_id] ?? task.state_id) === task.state_id
-                            }
+                            aria-pressed={task.state_id === state.state_id}
+                            disabled={updatingTaskIds.has(task.task_id)}
                             onClick={() => {
-                              void handleTaskStateUpdate(task.task_id);
+                              void handleTaskStateUpdate(
+                                task.task_id,
+                                state.state_id,
+                                state.state_name,
+                              );
                             }}
-                            className="min-h-10 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                            className={getStateButtonClass(
+                              state.state_name,
+                              task.state_id === state.state_id,
+                            )}
                           >
                             {updatingTaskIds.has(task.task_id)
                               ? "更新中..."
-                              : "更新"}
+                              : state.state_name}
+                          </button>
+                          ))}
+
+                          <button
+                            type="button"
+                            aria-expanded={openCommentsTaskId === task.task_id}
+                            aria-controls={`task-comments-${task.task_id}`}
+                            onClick={() => {
+                              setOpenCommentsTaskId((currentTaskId) =>
+                                currentTaskId === task.task_id
+                                  ? null
+                                  : task.task_id,
+                              );
+                              setCommentComposer(null);
+                            }}
+                            className="min-h-10 whitespace-nowrap rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                          >
+                            {openCommentsTaskId === task.task_id
+                              ? "詳細を閉じる"
+                              : "履歴を見る"}
                           </button>
                         </div>
 
@@ -789,34 +824,33 @@ export function GroupTasksPageClient({
                         )}
                       </td>
 
-                      <td className="border-b border-slate-100 px-5 py-4 sm:px-6">
-                        <button
-                          type="button"
-                          aria-expanded={openCommentsTaskId === task.task_id}
-                          aria-controls={`task-comments-${task.task_id}`}
-                          onClick={() => {
-                            setOpenCommentsTaskId((currentTaskId) =>
-                              currentTaskId === task.task_id
-                                ? null
-                                : task.task_id,
-                            );
-                          }}
-                          className="min-h-10 whitespace-nowrap rounded-lg border border-blue-200 bg-blue-50 px-4 text-sm font-semibold text-blue-700 hover:border-blue-300 hover:bg-blue-100"
-                        >
-                          {openCommentsTaskId === task.task_id
-                            ? "コメントを閉じる"
-                            : "コメントを表示"}
-                        </button>
-                      </td>
                     </tr>
 
                     {openCommentsTaskId === task.task_id && (
                       <tr id={`task-comments-${task.task_id}`}>
-                        <td colSpan={5} className="p-0">
+                        <td colSpan={4} className="p-0">
                           <TaskCommentsPanel
+                            key={`${task.task_id}-${
+                              commentComposer?.taskId === task.task_id
+                                ? commentComposer.focusKey
+                                : 0
+                            }`}
                             taskId={task.task_id}
                             imageId={task.image_id}
                             onUnauthorized={handleUnauthorized}
+                            initialContent={
+                              commentComposer?.taskId === task.task_id
+                                ? commentComposer.initialContent
+                                : ""
+                            }
+                            focusKey={
+                              commentComposer?.taskId === task.task_id
+                                ? commentComposer.focusKey
+                                : 0
+                            }
+                            onCompleted={() => {
+                              moveToNextTask(task.task_id);
+                            }}
                           />
                         </td>
                       </tr>

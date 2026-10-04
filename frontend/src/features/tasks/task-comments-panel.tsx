@@ -34,14 +34,20 @@ type TaskCommentsPanelProps = {
   taskId: number;
   imageId: number;
   refreshKey?: number;
+  initialContent?: string;
+  focusKey?: number;
   onUnauthorized: () => void;
+  onCompleted?: () => void;
 };
 
 export function TaskCommentsPanel({
   taskId,
   imageId,
   refreshKey = 0,
+  initialContent = "",
+  focusKey = 0,
   onUnauthorized,
+  onCompleted,
 }: TaskCommentsPanelProps) {
   const [commentData, setCommentData] =
     useState<TaskCommentsResponse | null>(null);
@@ -52,7 +58,8 @@ export function TaskCommentsPanel({
   const [loadError, setLoadError] =
     useState<CommentsLoadError | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
-  const [content, setContent] = useState("");
+  const [content, setContent] =
+    useState(initialContent);
   const [replyTarget, setReplyTarget] =
     useState<Comment | null>(null);
   const [submitting, setSubmitting] =
@@ -191,6 +198,7 @@ export function TaskCommentsPanel({
           ? "コメントを投稿しました"
           : "返信を投稿しました",
       );
+      onCompleted?.();
     } catch (error: unknown) {
       const nextError =
         getCommentSubmitError(error);
@@ -294,6 +302,7 @@ export function TaskCommentsPanel({
           id={`comment-content-${taskId}`}
           value={content}
           rows={4}
+          autoFocus={focusKey > 0}
           disabled={submitting}
           aria-describedby={`comment-content-help-${taskId}`}
           aria-invalid={submitError !== null}
@@ -301,9 +310,22 @@ export function TaskCommentsPanel({
             setContent(event.target.value);
             setSubmitError(null);
           }}
+          onKeyDown={(event) => {
+            if (
+              event.key === "Enter" &&
+              (event.shiftKey || event.ctrlKey)
+            ) {
+              event.preventDefault();
+              event.currentTarget.form?.requestSubmit();
+            }
+          }}
           placeholder="コメントを入力してください"
           className="w-full resize-y rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-inner placeholder:text-slate-400 disabled:cursor-wait disabled:bg-slate-100"
         />
+
+        <p className="mt-1 text-xs text-slate-500">
+          Shift+Enter または Ctrl+Enter で送信
+        </p>
 
         <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
           <div>

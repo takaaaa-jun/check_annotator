@@ -144,4 +144,50 @@ describe("TaskCommentsPanel integration", () => {
     ).toHaveTextContent("コメントを入力してください");
     expect(createTaskCommentMock).not.toHaveBeenCalled();
   });
+
+  it("初期文言を設定しCtrl+Enterで投稿できる", async () => {
+    const onCompleted = vi.fn();
+    createTaskCommentMock.mockResolvedValue({
+      comment_id: 2,
+      task_id: 10,
+      user_id: 1,
+      user_name: "takahashi",
+      parent_id: null,
+      content: "付与予定ラベル：tuna",
+      created_at: "2026-10-04T04:00:00Z",
+      updated_at: "2026-10-04T04:00:00Z",
+    });
+
+    render(
+      <TaskCommentsPanel
+        taskId={10}
+        imageId={100}
+        initialContent="付与予定ラベル："
+        focusKey={1}
+        onUnauthorized={vi.fn()}
+        onCompleted={onCompleted}
+      />,
+    );
+    const user = userEvent.setup();
+
+    await screen.findByText("確認をお願いします");
+    const input = screen.getByLabelText(
+      "新しいコメント",
+    );
+    expect(input).toHaveFocus();
+    expect(input).toHaveValue("付与予定ラベル：");
+
+    await user.type(input, "tuna{Control>}{Enter}{/Control}");
+
+    await waitFor(() => {
+      expect(createTaskCommentMock).toHaveBeenCalledWith(
+        10,
+        {
+          content: "付与予定ラベル：tuna",
+          parentId: null,
+        },
+      );
+      expect(onCompleted).toHaveBeenCalledTimes(1);
+    });
+  });
 });
