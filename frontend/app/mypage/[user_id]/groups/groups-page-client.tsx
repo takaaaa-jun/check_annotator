@@ -15,6 +15,10 @@ import type {
   UserGroupsResponse,
 } from "@/src/lib/api/types";
 import { getUserGroups } from "@/src/lib/api/users";
+import {
+  EmptyState,
+  LoadingState,
+} from "@/src/components/async-state";
 
 type GroupsPageClientProps = {
   userId: number;
@@ -159,13 +163,7 @@ export function GroupsPageClient({
   if (loading) {
     return (
       <main className="mx-auto max-w-5xl p-8">
-        <p
-          role="status"
-          aria-live="polite"
-          className="text-center text-gray-600"
-        >
-          読み込み中...
-        </p>
+        <LoadingState />
       </main>
     );
   }
@@ -228,11 +226,7 @@ export function GroupsPageClient({
       </header>
 
       {data.groups.length === 0 ? (
-        <div className="rounded-lg border bg-white p-8 text-center">
-          <p className="text-gray-600">
-            担当グループはありません
-          </p>
-        </div>
+        <EmptyState message="担当グループはありません" />
       ) : (
         <div className="grid gap-6">
           {data.groups.map((group) => {

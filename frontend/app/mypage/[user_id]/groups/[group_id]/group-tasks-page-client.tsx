@@ -29,6 +29,11 @@ import {
   replaceUpdatedTask,
 } from "@/src/features/tasks/state-update";
 import { TaskCommentsPanel } from "@/src/features/tasks/task-comments-panel";
+import { FeedbackMessage } from "@/src/components/feedback-message";
+import {
+  EmptyState,
+  LoadingState,
+} from "@/src/components/async-state";
 
 type GroupTasksPageClientProps = {
   userId: number;
@@ -134,6 +139,9 @@ export function GroupTasksPageClient({
 
   const [openCommentsTaskId, setOpenCommentsTaskId] =
     useState<number | null>(null);
+
+  const [operationMessage, setOperationMessage] =
+    useState<string | null>(null);
 
   const updatingTaskIdsRef =
     useRef(new Set<number>());
@@ -381,6 +389,7 @@ export function GroupTasksPageClient({
       delete nextErrors[taskId];
       return nextErrors;
     });
+    setOperationMessage(null);
 
     try {
       const updatedTask =
@@ -401,6 +410,9 @@ export function GroupTasksPageClient({
         ...currentValues,
         [taskId]: updatedTask.state_id,
       }));
+      setOperationMessage(
+        `画像${updatedTask.image_id}の状態を「${updatedTask.state_name}」へ更新しました`,
+      );
     } catch (error: unknown) {
       setSelectedStateIds((currentValues) => ({
         ...currentValues,
@@ -421,13 +433,7 @@ export function GroupTasksPageClient({
   if (metadataLoading) {
     return (
       <main className="mx-auto max-w-6xl p-8">
-        <p
-          role="status"
-          aria-live="polite"
-          className="text-center text-gray-600"
-        >
-          グループ情報を読み込み中...
-        </p>
+        <LoadingState message="グループ情報を読み込み中..." />
       </main>
     );
   }
@@ -521,6 +527,12 @@ export function GroupTasksPageClient({
             : "担当タスク一覧"}
         </p>
       </header>
+
+      {operationMessage !== null && (
+        <div className="mb-6">
+          <FeedbackMessage message={operationMessage} />
+        </div>
+      )}
 
       <section
         aria-labelledby="task-filter-heading"
@@ -642,18 +654,12 @@ export function GroupTasksPageClient({
         </div>
 
         {tasksLoading ? (
-          <p
-            role="status"
-            aria-live="polite"
-            className="p-8 text-center text-gray-600"
-          >
-            タスクを読み込み中...
-          </p>
+          <LoadingState message="タスクを読み込み中..." />
         ) : taskData === null ||
           taskData.tasks.length === 0 ? (
-          <p className="p-8 text-center text-gray-600">
-            該当するタスクはありません
-          </p>
+          <div className="p-5">
+            <EmptyState message="該当するタスクはありません" />
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
