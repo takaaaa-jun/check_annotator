@@ -24,13 +24,20 @@ export function LogoutButton() {
   }
 
   return (
-    <div className="flex items-center gap-2">
-      {error !== null && <p role="alert" className="text-red-500 text-sm m-0">{error}</p>}
-      <button 
-        type="button" 
-        onClick={handleLogout} 
+    <div className="flex items-center gap-3">
+      {error !== null && (
+        <p
+          role="alert"
+          className="m-0 hidden text-sm font-medium text-red-600 sm:block"
+        >
+          {error}
+        </p>
+      )}
+      <button
+        type="button"
+        onClick={handleLogout}
         disabled={isPending}
-        className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded transition-colors disabled:opacity-50"
+        className="min-h-10 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950 disabled:cursor-wait disabled:opacity-50"
       >
         {isPending ? "ログアウト中..." : "ログアウト"}
       </button>

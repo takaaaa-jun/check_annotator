@@ -391,26 +391,26 @@ export function GroupTasksPageClient({
     !tasksLoading;
 
   return (
-    <main className="mx-auto max-w-6xl p-8">
+    <main className="mx-auto min-h-[calc(100vh-65px)] max-w-6xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
       <div className="mb-4">
         <Link
           href={`/mypage/${userId}/groups`}
-          className="text-sm text-blue-700 hover:underline"
+          className="inline-flex items-center rounded-lg px-2 py-1 text-sm font-semibold text-blue-700 hover:bg-blue-50"
         >
           ← グループ一覧へ戻る
         </Link>
       </div>
 
       <header className="mb-8">
-        <p className="mb-2 text-sm text-gray-600">
+        <p className="mb-2 text-sm font-medium text-blue-700">
           ログイン中: {currentUser.user_name}
         </p>
 
-        <h1 className="text-2xl font-bold">
+        <h1 className="text-3xl font-bold tracking-tight text-slate-950">
           {group.group_name}
         </h1>
 
-        <p className="mt-2 text-gray-600">
+        <p className="mt-2 text-slate-500">
           {currentUser.role_name === "admin"
             ? `${userId}番ユーザーのタスク一覧`
             : "担当タスク一覧"}
@@ -419,20 +419,20 @@ export function GroupTasksPageClient({
 
       <section
         aria-labelledby="task-filter-heading"
-        className="mb-6 rounded-lg border bg-white p-4"
+        className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)] sm:p-6"
       >
         <h2
           id="task-filter-heading"
-          className="mb-4 text-lg font-semibold"
+          className="mb-5 text-lg font-bold text-slate-900"
         >
           表示条件
         </h2>
 
-        <div className="flex flex-wrap gap-6">
-          <div>
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div className="grid gap-2">
             <label
               htmlFor="state-filter"
-              className="mb-1 block text-sm font-medium text-gray-700"
+              className="block text-sm font-semibold text-slate-700"
             >
               状態
             </label>
@@ -442,7 +442,7 @@ export function GroupTasksPageClient({
               value={stateId ?? ""}
               onChange={handleStateChange}
               disabled={tasksLoading}
-              className="rounded border border-gray-300 bg-white px-3 py-2"
+              className="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-800 shadow-sm hover:border-slate-400 disabled:cursor-wait disabled:bg-slate-50"
             >
               <option value="">
                 すべて
@@ -462,10 +462,10 @@ export function GroupTasksPageClient({
             </select>
           </div>
 
-          <div>
+          <div className="grid gap-2">
             <label
               htmlFor="page-size"
-              className="mb-1 block text-sm font-medium text-gray-700"
+              className="block text-sm font-semibold text-slate-700"
             >
               1ページの表示件数
             </label>
@@ -475,7 +475,7 @@ export function GroupTasksPageClient({
               value={pageSize}
               onChange={handlePageSizeChange}
               disabled={tasksLoading}
-              className="rounded border border-gray-300 bg-white px-3 py-2"
+              className="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-800 shadow-sm hover:border-slate-400 disabled:cursor-wait disabled:bg-slate-50"
             >
               <option value={10}>
                 10件
@@ -521,17 +521,17 @@ export function GroupTasksPageClient({
 
       <section
         aria-labelledby="task-list-heading"
-        className="overflow-hidden rounded-lg border bg-white"
+        className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.05)]"
       >
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b p-4">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 px-5 py-4 sm:px-6">
           <h2
             id="task-list-heading"
-            className="text-lg font-semibold"
+            className="text-lg font-bold text-slate-900"
           >
             タスク一覧
           </h2>
 
-          <p className="text-sm text-gray-600">
+          <p className="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-600">
             全{pagination?.total ?? 0}件
           </p>
         </div>
@@ -552,25 +552,25 @@ export function GroupTasksPageClient({
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
-              <thead className="bg-gray-50">
+              <thead className="bg-slate-50">
                 <tr>
                   <th
                     scope="col"
-                    className="border-b px-4 py-3 text-left text-sm font-semibold text-gray-700"
+                    className="border-b border-slate-200 px-5 py-3.5 text-left text-xs font-bold uppercase tracking-wide text-slate-500 sm:px-6"
                   >
                     画像ID
                   </th>
 
                   <th
                     scope="col"
-                    className="border-b px-4 py-3 text-left text-sm font-semibold text-gray-700"
+                    className="border-b border-slate-200 px-5 py-3.5 text-left text-xs font-bold uppercase tracking-wide text-slate-500 sm:px-6"
                   >
                     状態
                   </th>
 
                   <th
                     scope="col"
-                    className="border-b px-4 py-3 text-left text-sm font-semibold text-gray-700"
+                    className="border-b border-slate-200 px-5 py-3.5 text-left text-xs font-bold uppercase tracking-wide text-slate-500 sm:px-6"
                   >
                     最終更新日時
                   </th>
@@ -582,19 +582,19 @@ export function GroupTasksPageClient({
                   (task) => (
                     <tr
                       key={task.task_id}
-                      className="hover:bg-gray-50"
+                      className="hover:bg-blue-50/50"
                     >
-                      <td className="border-b px-4 py-3">
+                      <td className="border-b border-slate-100 px-5 py-4 font-semibold text-slate-900 sm:px-6">
                         {task.image_id}
                       </td>
 
-                      <td className="border-b px-4 py-3">
-                        <span className="inline-block rounded bg-gray-100 px-2 py-1 text-sm">
+                      <td className="border-b border-slate-100 px-5 py-4 sm:px-6">
+                        <span className="inline-flex rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-700">
                           {task.state_name}
                         </span>
                       </td>
 
-                      <td className="border-b px-4 py-3 text-sm text-gray-600">
+                      <td className="border-b border-slate-100 px-5 py-4 text-sm text-slate-600 sm:px-6">
                         {formatDateTime(
                           task.updated_at,
                         )}
@@ -621,12 +621,12 @@ export function GroupTasksPageClient({
                 currentPage - 1,
             );
           }}
-          className="rounded border border-gray-300 px-4 py-2 disabled:cursor-not-allowed disabled:opacity-50"
+          className="min-h-10 rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm hover:border-blue-300 hover:text-blue-700 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 disabled:shadow-none"
         >
           前へ
         </button>
 
-        <span className="text-sm text-gray-700">
+        <span className="min-w-24 text-center text-sm font-semibold text-slate-600">
           {page} / {totalPages}ページ
         </span>
 
@@ -639,7 +639,7 @@ export function GroupTasksPageClient({
                 currentPage + 1,
             );
           }}
-          className="rounded border border-gray-300 px-4 py-2 disabled:cursor-not-allowed disabled:opacity-50"
+          className="min-h-10 rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm hover:border-blue-300 hover:text-blue-700 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 disabled:shadow-none"
         >
           次へ
         </button>

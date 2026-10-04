@@ -70,6 +70,110 @@
 
 接続先を変更するときは `.env` の値を置き換え、Docker Composeのサービスを再作成する。`.env` は認証情報を含むためGitへコミットしない。
 
+## 起動方法
+
+```bash
+cd C:\srv\check_annotator
+
+docker compose `
+  --env-file .env `
+  --env-file docker-compose.mock.env `
+  -f docker-compose.yaml `
+  -f docker-compose.dev.yaml `
+  up -d --build --force-recreate backend frontend
+
+.\scripts\dev-compose.ps1 -Mock -Build
+.\scripts\dev-compose.ps1 -Mock -Reset -Build
+
+#########
+
+docker compose `
+  --env-file .env `
+  -f docker-compose.yaml `
+  -f docker-compose.dev.yaml `
+  up -d --build --force-recreate backend frontend
+
+.\scripts\dev-compose.ps1 -Build
+
+docker compose `
+  --env-file .env `
+  --env-file docker-compose.mock.env `
+  -f docker-compose.yaml `
+  -f docker-compose.dev.yaml `
+  ps
+
+docker compose `
+  --env-file .env `
+  --env-file docker-compose.mock.env `
+  -f docker-compose.yaml `
+  -f docker-compose.dev.yaml `
+  stop
+
+docker compose `
+  --env-file .env `
+  --env-file docker-compose.mock.env `
+  -f docker-compose.yaml `
+  -f docker-compose.dev.yaml `
+  start
+
+docker compose `
+  --env-file .env `
+  --env-file docker-compose.mock.env `
+  -f docker-compose.yaml `
+  -f docker-compose.dev.yaml `
+  down
+
+docker compose `
+  --env-file .env `
+  --env-file docker-compose.mock.env `
+  -f docker-compose.yaml `
+  -f docker-compose.dev.yaml `
+  down --volumes
+
+docker compose `
+  --env-file .env `
+  --env-file docker-compose.mock.env `
+  -f docker-compose.yaml `
+  -f docker-compose.dev.yaml `
+  exec backend `
+  python -m pytest
+
+docker compose `
+  --env-file .env `
+  --env-file docker-compose.mock.env `
+  -f docker-compose.yaml `
+  -f docker-compose.dev.yaml `
+  exec frontend `
+  npm test
+
+
+docker compose `
+  --env-file .env `
+  --env-file docker-compose.mock.env `
+  -f docker-compose.yaml `
+  -f docker-compose.dev.yaml `
+  exec frontend `
+  npm run typecheck
+
+docker compose `
+  --env-file .env `
+  --env-file docker-compose.mock.env `
+  -f docker-compose.yaml `
+  -f docker-compose.dev.yaml `
+  exec frontend `
+  npm run lint
+
+
+# モックモード
+.\scripts\dev-compose.ps1 -Mock
+
+# モックデータを初期化して起動
+.\scripts\dev-compose.ps1 -Mock -Reset
+
+# MySQLモード
+.\scripts\dev-compose.ps1
+```
+
 ##
 
 Copyright &copy; 2026 Jun Takahashi, Yamazaki Lab, University of Niigata. All rights reserved.

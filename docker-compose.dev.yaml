@@ -7,8 +7,10 @@ services:
     working_dir: /workspace/check_annotator
     volumes:
       - .:/workspace/check_annotator
+      - backend-mock-data:/data
     environment:
       APP_ENV: ${APP_ENV:-development}
+      APP_DATA_MODE: ${APP_DATA_MODE:-database}
       DATABASE_URL: ${DATABASE_URL:-}
       AUTH_SECRET_KEY: ${AUTH_SECRET_KEY}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
@@ -37,6 +39,7 @@ services:
       - --reload
     volumes:
       - .:/workspace/check_annotator
+      - backend-mock-data:/data
     ports:
       - "8000:8000"
     healthcheck:
@@ -73,3 +76,4 @@ services:
 volumes:
   frontend-node-modules:
   frontend-next:
+  backend-mock-data:

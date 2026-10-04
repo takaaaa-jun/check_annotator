@@ -1,0 +1,84 @@
+{
+  "users": [
+    {
+      "user": {
+        "user_id": 1,
+        "user_name": "takahashi"
+      },
+      "groups": [
+        {
+          "group_id": 1,
+          "group_name": "グループ1",
+          "image_id_min": 1,
+          "image_id_max": 12,
+          "total_count": 12,
+          "state_counts": [
+            {
+              "state_id": 1,
+              "state_name": "未着手",
+              "count": 5
+            },
+            {
+              "state_id": 2,
+              "state_name": "完了",
+              "count": 4
+            },
+            {
+              "state_id": 3,
+              "state_name": "付与予定ラベル",
+              "count": 2
+            },
+            {
+              "state_id": 4,
+              "state_name": "コメント",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "group_id": 2,
+          "group_name": "空グループ",
+          "image_id_min": null,
+          "image_id_max": null,
+          "total_count": 0,
+          "state_counts": [
+            {
+              "state_id": 1,
+              "state_name": "未着手",
+              "count": 0
+            },
+            {
+              "state_id": 2,
+              "state_name": "完了",
+              "count": 0
+            },
+            {
+              "state_id": 3,
+              "state_name": "付与予定ラベル",
+              "count": 0
+            },
+            {
+              "state_id": 4,
+              "state_name": "コメント",
+              "count": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "user": {
+        "user_id": 3,
+        "user_name": "no-groups-user"
+      },
+      "groups": []
+    },
+    {
+      "user": {
+        "user_id": 4,
+        "user_name": "admin-user"
+      },
+      "groups": []
+    }
+  ]
+}

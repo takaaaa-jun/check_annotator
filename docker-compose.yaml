@@ -7,6 +7,7 @@ services:
       dockerfile: Dockerfile
     environment:
       APP_ENV: ${APP_ENV:-development}
+      APP_DATA_MODE: ${APP_DATA_MODE:-database}
 
       DATABASE_URL: ${DATABASE_URL:-}
       AUTH_SECRET_KEY: ${AUTH_SECRET_KEY}
@@ -18,7 +19,6 @@ services:
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
 
-      # 必要な場合のみ使用
       DB_SSL_CA: ${DB_SSL_CA:-}
     networks:
       - app-network
@@ -28,7 +28,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     environment:
-      INTERNAL_API_URL: http://backend:8000
+      INTERNAL_API_URL: ${INTERNAL_API_URL:-http://backend:8000}
       NEXT_PUBLIC_BASE_PATH: ${NEXT_PUBLIC_BASE_PATH:-/check_annotator}
     depends_on:
       backend:

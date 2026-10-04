@@ -1,3 +1,12 @@
+export type ErrorDetail = {
+  code: string;
+  message: string;
+};
+
+export type APIErrorResponse = {
+  detail: ErrorDetail;
+};
+
 export type LoginResponse = {
   user: {
     user_id: number;
