@@ -90,9 +90,15 @@ export function TaskTable({
       ) : (
         <div
           ref={scrollRef}
-          className="min-h-0 flex-1 overflow-auto"
+          className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
         >
-          <table className="w-full border-collapse">
+          <table className="w-full table-fixed border-collapse">
+            <colgroup>
+              <col className="w-[12%]" />
+              <col className="w-[18%]" />
+              <col className="w-[22%]" />
+              <col className="w-[48%]" />
+            </colgroup>
             <thead className="sticky top-0 z-10 bg-slate-50 shadow-sm">
               <tr>
                 {[
@@ -104,7 +110,7 @@ export function TaskTable({
                   <th
                     key={heading}
                     scope="col"
-                    className="whitespace-nowrap border-b border-slate-300 px-5 py-3.5 text-center text-sm font-extrabold tracking-wide text-slate-700 sm:px-6"
+                    className="whitespace-nowrap border-b border-slate-300 px-2 py-3.5 text-center text-sm font-extrabold tracking-wide text-slate-700 xl:px-4"
                   >
                     {heading}
                   </th>
@@ -125,17 +131,17 @@ export function TaskTable({
                         : "hover:bg-blue-50/50"
                     }
                   >
-                    <td className="border-b border-slate-100 px-5 py-4 text-center text-lg font-extrabold text-slate-950 sm:px-6">
+                    <td className="break-words border-b border-slate-100 px-2 py-4 text-center text-lg font-extrabold text-slate-950 xl:px-4">
                       {task.image_id}
                     </td>
-                    <td className="border-b border-slate-100 px-5 py-4 text-center sm:px-6">
+                    <td className="border-b border-slate-100 px-2 py-4 text-center xl:px-4">
                       <TaskStateBadge stateName={task.state_name} />
                     </td>
-                    <td className="whitespace-nowrap border-b border-slate-100 px-5 py-4 text-center text-base font-semibold text-slate-700 sm:px-6">
+                    <td className="border-b border-slate-100 px-2 py-4 text-center text-base font-semibold text-slate-700 xl:px-4">
                       {formatDateTime(task.updated_at)}
                     </td>
-                    <td className="border-b border-slate-100 px-5 py-4 text-center sm:px-6">
-                      <div className="flex min-w-[36rem] flex-wrap items-center justify-center gap-2">
+                    <td className="border-b border-slate-100 px-2 py-4 text-center xl:px-4">
+                      <div className="flex w-full flex-wrap items-center justify-center gap-2">
                         <TaskStateControls
                           states={stateCounts}
                           currentStateId={task.state_id}
@@ -151,7 +157,7 @@ export function TaskTable({
                           onClick={() => {
                             onToggleComments(task.task_id);
                           }}
-                          className="min-h-11 whitespace-nowrap rounded-lg border border-slate-400 bg-white px-4 text-base font-bold text-slate-800 hover:bg-slate-100"
+                          className="min-h-11 whitespace-nowrap rounded-lg border border-slate-400 bg-white px-2 text-base font-bold text-slate-800 hover:bg-slate-100 xl:px-3"
                         >
                           {openCommentsTaskId === task.task_id
                             ? "コメント一覧を閉じる"

@@ -427,8 +427,10 @@ export function GroupTasksPageClient({
       if (opensCommentComposer) {
         setActiveTaskId(taskId);
         scrollCommentEditorIntoView(taskId);
-      } else {
+      } else if (updatedTask.state_name === "完了") {
         highlightTaskAndAdvance(taskId);
+      } else {
+        setActiveTaskId(taskId);
       }
     } catch (error: unknown) {
       setTaskUpdateErrors((currentErrors) => ({
