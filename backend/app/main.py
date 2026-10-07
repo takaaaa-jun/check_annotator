@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+import logging
 
 from fastapi import FastAPI
 from fastapi.exceptions import (
@@ -7,6 +8,7 @@ from fastapi.exceptions import (
 from fastapi.middleware.cors import (
     CORSMiddleware,
 )
+from fastapi.responses import JSONResponse
 
 from app.api.routers.auth import (
     router as auth_router,
@@ -18,6 +20,7 @@ from app.api.routers.users import (
     router as users_router,
 )
 from app.core.config import get_cors_origins
+from app.database import check_database_connection
 from app.core.exceptions import (
     AuthenticationRequiredError,
     CommentNotFoundError,
@@ -39,6 +42,9 @@ from app.core.exceptions import (
 from app.mock.startup import (
     initialize_mock_database,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -115,4 +121,27 @@ app.include_router(tasks_router)
 def health():
     return {
         "status": "ok",
+    }
+
+
+@app.get("/health/database")
+def database_health():
+    try:
+        check_database_connection()
+    except Exception as error:
+        logger.warning(
+            "Database health check failed: %s",
+            type(error).__name__,
+        )
+        return JSONResponse(
+            status_code=503,
+            content={
+                "status": "error",
+                "database": "unavailable",
+            },
+        )
+
+    return {
+        "status": "ok",
+        "database": "connected",
     }
