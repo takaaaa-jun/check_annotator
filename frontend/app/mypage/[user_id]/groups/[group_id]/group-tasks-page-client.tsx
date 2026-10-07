@@ -565,22 +565,25 @@ export function GroupTasksPageClient({
       <div className="mb-4">
         <Link
           href={`/mypage/${userId}/groups`}
-          className="inline-flex items-center rounded-lg px-2 py-1 text-sm font-semibold text-blue-700 hover:bg-blue-50"
+          className="inline-flex items-center rounded-lg px-2 py-1 text-base font-bold text-blue-700 hover:bg-blue-50"
         >
           ← グループ一覧へ戻る
         </Link>
       </div>
 
       <header className="mb-5">
-        <p className="mb-2 text-sm font-medium text-blue-700">
-          ログイン中: {currentUser.user_name}
+        <p className="mb-2 text-base font-semibold text-blue-700">
+          ログイン中: {" "}
+          <span className="text-lg font-extrabold text-blue-950">
+            {currentUser.user_name}
+          </span>
         </p>
 
-        <h1 className="text-3xl font-bold tracking-tight text-slate-950">
+        <h1 className="text-4xl font-extrabold tracking-tight text-slate-950">
           {group.group_name}
         </h1>
 
-        <p className="mt-2 text-slate-500">
+        <p className="mt-2 text-lg font-bold text-slate-700">
           {currentUser.role_name === "admin"
             ? `${userId}番ユーザーのタスク一覧`
             : "担当タスク一覧"}

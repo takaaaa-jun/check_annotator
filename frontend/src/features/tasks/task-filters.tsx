@@ -25,7 +25,7 @@ export function TaskFilters({
     >
       <h2
         id="task-filter-heading"
-        className="mb-5 text-lg font-bold text-slate-900"
+        className="mb-5 text-xl font-extrabold text-slate-950"
       >
         表示条件
       </h2>
@@ -34,7 +34,7 @@ export function TaskFilters({
         <div className="grid gap-2">
           <label
             htmlFor="state-filter"
-            className="block text-sm font-semibold text-slate-700"
+            className="block text-base font-bold text-slate-800"
           >
             状態
           </label>
@@ -49,7 +49,7 @@ export function TaskFilters({
                   : Number(event.target.value),
               );
             }}
-            className="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-800 shadow-sm hover:border-slate-400 disabled:cursor-wait disabled:bg-slate-50"
+            className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-base font-semibold text-slate-900 shadow-sm hover:border-slate-400 disabled:cursor-wait disabled:bg-slate-50"
           >
             <option value="">すべて</option>
             {group.state_counts.map((state) => (
@@ -66,7 +66,7 @@ export function TaskFilters({
         <div className="grid gap-2">
           <label
             htmlFor="page-size"
-            className="block text-sm font-semibold text-slate-700"
+            className="block text-base font-bold text-slate-800"
           >
             1ページの表示件数
           </label>
@@ -79,7 +79,7 @@ export function TaskFilters({
                 Number(event.target.value) as GroupTasksPageSize,
               );
             }}
-            className="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-800 shadow-sm hover:border-slate-400 disabled:cursor-wait disabled:bg-slate-50"
+            className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-base font-semibold text-slate-900 shadow-sm hover:border-slate-400 disabled:cursor-wait disabled:bg-slate-50"
           >
             <option value={10}>10件</option>
             <option value={50}>50件</option>

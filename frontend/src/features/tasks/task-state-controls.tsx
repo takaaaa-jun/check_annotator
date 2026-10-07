@@ -36,7 +36,7 @@ export function TaskStateBadge({
 }) {
   return (
     <span
-      className={`inline-flex whitespace-nowrap rounded-full border px-3 py-1 text-sm font-bold ${getStateColorClasses(
+      className={`inline-flex whitespace-nowrap rounded-full border px-3 py-1.5 text-base font-extrabold ${getStateColorClasses(
         stateName,
         false,
       )}`}
@@ -74,7 +74,7 @@ export function TaskStateControls({
             onClick={() => {
               onSelect(state);
             }}
-            className={`min-h-10 whitespace-nowrap rounded-lg border px-3 text-sm font-bold shadow-sm disabled:cursor-wait disabled:opacity-50 ${getStateColorClasses(
+            className={`min-h-11 whitespace-nowrap rounded-lg border px-4 text-base font-extrabold shadow-sm disabled:cursor-wait disabled:opacity-50 ${getStateColorClasses(
               state.state_name,
               selected,
             )} ${
