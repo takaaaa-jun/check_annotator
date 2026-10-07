@@ -65,10 +65,14 @@
 - `DB_USER`: データベースユーザー名
 - `DB_PASSWORD`: データベースパスワード
 - `DB_SSL_CA`: SSL接続で必要な場合のCA証明書パス
+- `DB_CONNECT_TIMEOUT`: MySQL接続のタイムアウト秒数（既定値: 5）
+- `DB_POOL_RECYCLE`: 接続プールを再作成するまでの秒数（既定値: 1800）
 - `AUTH_SECRET_KEY`: JWT署名用の十分に長いランダム文字列
 - `CORS_ORIGINS`: フロントエンドのURL。複数の場合はカンマ区切り
 
 接続先を変更するときは `.env` の値を置き換え、Docker Composeのサービスを再作成する。`.env` は認証情報を含むためGitへコミットしない。
+
+バックエンドの稼働だけを確認する場合は `GET /health`、データベースへの疎通まで確認する場合は `GET /health/database` を使用する。Docker Composeのヘルスチェックは後者を使用するため、MySQLへ接続できないバックエンドは正常状態にならない。
 
 ## 起動方法
 
