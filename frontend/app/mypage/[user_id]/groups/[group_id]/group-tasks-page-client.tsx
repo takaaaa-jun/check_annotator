@@ -357,7 +357,6 @@ export function GroupTasksPageClient({
         focusKey:
           (currentValue?.focusKey ?? 0) + 1,
       }));
-      scrollCommentEditorIntoView(taskId);
     } else {
       setOpenCommentsTaskId(null);
       setCommentComposer(null);
@@ -426,7 +425,6 @@ export function GroupTasksPageClient({
       );
       if (opensCommentComposer) {
         setActiveTaskId(taskId);
-        scrollCommentEditorIntoView(taskId);
       } else if (updatedTask.state_name === "完了") {
         highlightTaskAndAdvance(taskId);
       } else {
@@ -465,26 +463,6 @@ export function GroupTasksPageClient({
       container.scrollTo({
         top: row.offsetTop - row.clientHeight,
         behavior: "smooth",
-      });
-    });
-  }
-
-  function scrollCommentEditorIntoView(taskId: number) {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        const container = taskScrollRef.current;
-        const commentRow = document.getElementById(
-          `task-comments-${taskId}`,
-        );
-
-        if (container === null || commentRow === null) {
-          return;
-        }
-
-        container.scrollTo({
-          top: commentRow.offsetTop - 64,
-          behavior: "smooth",
-        });
       });
     });
   }

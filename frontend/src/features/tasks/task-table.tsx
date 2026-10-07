@@ -94,10 +94,10 @@ export function TaskTable({
         >
           <table className="w-full table-fixed border-collapse">
             <colgroup>
-              <col className="w-[12%]" />
+              <col className="w-[8%]" />
+              <col className="w-[13%]" />
               <col className="w-[18%]" />
-              <col className="w-[22%]" />
-              <col className="w-[48%]" />
+              <col className="w-[61%]" />
             </colgroup>
             <thead className="sticky top-0 z-10 bg-slate-50 shadow-sm">
               <tr>
@@ -141,7 +141,7 @@ export function TaskTable({
                       {formatDateTime(task.updated_at)}
                     </td>
                     <td className="border-b border-slate-100 px-2 py-4 text-center xl:px-4">
-                      <div className="flex w-full flex-wrap items-center justify-center gap-2">
+                      <div className="flex w-full flex-nowrap items-center justify-center gap-0.5">
                         <TaskStateControls
                           states={stateCounts}
                           currentStateId={task.state_id}
@@ -157,7 +157,7 @@ export function TaskTable({
                           onClick={() => {
                             onToggleComments(task.task_id);
                           }}
-                          className="min-h-11 whitespace-nowrap rounded-lg border border-slate-400 bg-white px-2 text-base font-bold text-slate-800 hover:bg-slate-100 xl:px-3"
+                          className="min-h-11 whitespace-nowrap rounded-lg border border-slate-400 bg-white px-1 text-[13px] font-bold text-slate-800 hover:bg-slate-100 2xl:px-2 2xl:text-base"
                         >
                           {openCommentsTaskId === task.task_id
                             ? "コメント一覧を閉じる"

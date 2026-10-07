@@ -74,7 +74,7 @@ export function TaskStateControls({
             onClick={() => {
               onSelect(state);
             }}
-            className={`min-h-11 whitespace-nowrap rounded-lg border px-2 text-base font-extrabold shadow-sm disabled:cursor-wait disabled:opacity-50 xl:px-3 ${getStateColorClasses(
+            className={`min-h-11 whitespace-nowrap rounded-lg border px-1 text-[13px] font-extrabold shadow-sm disabled:cursor-wait disabled:opacity-50 2xl:px-2 2xl:text-base ${getStateColorClasses(
               state.state_name,
               selected,
             )} ${
