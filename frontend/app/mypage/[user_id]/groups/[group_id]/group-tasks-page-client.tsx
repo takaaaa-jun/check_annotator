@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import {
-  Fragment,
   useCallback,
   useEffect,
   useRef,
@@ -23,17 +22,17 @@ import {
   getUserGroups,
   type GroupTasksPageSize,
 } from "@/src/lib/api/users";
-import { formatDateTime } from "@/src/lib/format/date-time";
 import {
   getTaskStateUpdateError,
   replaceUpdatedTask,
 } from "@/src/features/tasks/state-update";
-import { TaskCommentsPanel } from "@/src/features/tasks/task-comments-panel";
-import { FeedbackMessage } from "@/src/components/feedback-message";
+import { TaskFilters } from "@/src/features/tasks/task-filters";
 import {
-  EmptyState,
-  LoadingState,
-} from "@/src/components/async-state";
+  TaskTable,
+  type CommentComposer,
+} from "@/src/features/tasks/task-table";
+import { FeedbackMessage } from "@/src/components/feedback-message";
+import { LoadingState } from "@/src/components/async-state";
 
 type GroupTasksPageClientProps = {
   userId: number;
@@ -105,6 +104,8 @@ export function GroupTasksPageClient({
   const [group, setGroup] =
     useState<GroupProgress | null>(null);
 
+  const groupReady = group !== null;
+
   const [taskData, setTaskData] =
     useState<GroupTasksResponse | null>(null);
 
@@ -128,9 +129,6 @@ export function GroupTasksPageClient({
   const [tasksError, setTasksError] =
     useState<LoadError | null>(null);
 
-  const [selectedStateIds, setSelectedStateIds] =
-    useState<Record<number, number>>({});
-
   const [updatingTaskIds, setUpdatingTaskIds] =
     useState<Set<number>>(() => new Set());
 
@@ -140,11 +138,23 @@ export function GroupTasksPageClient({
   const [openCommentsTaskId, setOpenCommentsTaskId] =
     useState<number | null>(null);
 
+  const [activeTaskId, setActiveTaskId] =
+    useState<number | null>(null);
+
+  const [commentComposer, setCommentComposer] =
+    useState<CommentComposer | null>(null);
+
   const [operationMessage, setOperationMessage] =
     useState<string | null>(null);
 
   const updatingTaskIdsRef =
     useRef(new Set<number>());
+
+  const taskScrollRef =
+    useRef<HTMLDivElement | null>(null);
+
+  const taskRowRefs =
+    useRef(new Map<number, HTMLTableRowElement>());
 
   const handleUnauthorized = useCallback(() => {
     router.replace("/login");
@@ -262,7 +272,7 @@ export function GroupTasksPageClient({
    * タスク一覧だけを再取得する。
    */
   useEffect(() => {
-    if (group === null) {
+    if (!groupReady) {
       return;
     }
 
@@ -288,14 +298,9 @@ export function GroupTasksPageClient({
         }
 
         setTaskData(result);
-        setSelectedStateIds(
-          Object.fromEntries(
-            result.tasks.map((task) => [
-              task.task_id,
-              task.state_id,
-            ]),
-          ),
-        );
+        setActiveTaskId(null);
+        setOpenCommentsTaskId(null);
+        setCommentComposer(null);
         setTaskUpdateErrors({});
         setTasksLoading(false);
       } catch (error: unknown) {
@@ -322,7 +327,7 @@ export function GroupTasksPageClient({
       active = false;
     };
   }, [
-    group,
+    groupReady,
     groupId,
     page,
     pageSize,
@@ -332,50 +337,42 @@ export function GroupTasksPageClient({
     userId,
   ]);
 
-  function handleStateChange(
-    event: React.ChangeEvent<HTMLSelectElement>,
-  ) {
-    const value = event.target.value;
-
-    setStateId(
-      value === ""
-        ? undefined
-        : Number(value),
-    );
-
-    setPage(1);
-  }
-
-  function handlePageSizeChange(
-    event: React.ChangeEvent<HTMLSelectElement>,
-  ) {
-    setPageSize(
-      Number(
-        event.target.value,
-      ) as GroupTasksPageSize,
-    );
-
-    setPage(1);
-  }
-
   async function handleTaskStateUpdate(
     taskId: number,
+    nextStateId: number,
+    nextStateName: string,
   ) {
+    const opensCommentComposer =
+      nextStateName === "コメント" ||
+      nextStateName === "付与予定ラベル";
+
+    if (opensCommentComposer) {
+      setOpenCommentsTaskId(taskId);
+      setCommentComposer((currentValue) => ({
+        taskId,
+        initialContent:
+          nextStateName === "付与予定ラベル"
+            ? "付与予定ラベル："
+            : "",
+        focusKey:
+          (currentValue?.focusKey ?? 0) + 1,
+      }));
+    } else {
+      setOpenCommentsTaskId(null);
+      setCommentComposer(null);
+    }
+
     if (updatingTaskIdsRef.current.has(taskId)) {
       return;
     }
 
-    const nextStateId =
-      selectedStateIds[taskId];
-
-    const previousStateId =
-      taskData?.tasks.find(
-        (task) => task.task_id === taskId,
-      )?.state_id;
+    const currentTask = taskData?.tasks.find(
+      (task) => task.task_id === taskId,
+    );
 
     if (
-      nextStateId === undefined ||
-      previousStateId === undefined
+      currentTask === undefined ||
+      currentTask.state_id === nextStateId
     ) {
       return;
     }
@@ -406,18 +403,34 @@ export function GroupTasksPageClient({
               updatedTask,
             ),
       );
-      setSelectedStateIds((currentValues) => ({
-        ...currentValues,
-        [taskId]: updatedTask.state_id,
-      }));
       setOperationMessage(
         `画像${updatedTask.image_id}の状態を「${updatedTask.state_name}」へ更新しました`,
       );
+      setGroup((currentGroup) =>
+        currentGroup === null
+          ? null
+          : {
+              ...currentGroup,
+              state_counts:
+                currentGroup.state_counts.map((state) => ({
+                  ...state,
+                  count:
+                    state.state_id === currentTask.state_id
+                      ? Math.max(0, state.count - 1)
+                      : state.state_id === updatedTask.state_id
+                        ? state.count + 1
+                        : state.count,
+                })),
+            },
+      );
+      if (opensCommentComposer) {
+        setActiveTaskId(taskId);
+      } else if (updatedTask.state_name === "完了") {
+        highlightTaskAndAdvance(taskId);
+      } else {
+        setActiveTaskId(taskId);
+      }
     } catch (error: unknown) {
-      setSelectedStateIds((currentValues) => ({
-        ...currentValues,
-        [taskId]: previousStateId,
-      }));
       setTaskUpdateErrors((currentErrors) => ({
         ...currentErrors,
         [taskId]: getTaskStateUpdateError(error),
@@ -428,6 +441,30 @@ export function GroupTasksPageClient({
         new Set(updatingTaskIdsRef.current),
       );
     }
+  }
+
+  function highlightTaskAndAdvance(taskId: number) {
+    setActiveTaskId(taskId);
+
+    requestAnimationFrame(() => {
+      const container = taskScrollRef.current;
+      const tasks = taskData?.tasks ?? [];
+      const taskIndex = tasks.findIndex(
+        (task) => task.task_id === taskId,
+      );
+      const nextTaskId =
+        tasks[taskIndex + 1]?.task_id ?? taskId;
+      const row = taskRowRefs.current.get(nextTaskId);
+
+      if (container === null || row === undefined) {
+        return;
+      }
+
+      container.scrollTo({
+        top: row.offsetTop - row.clientHeight,
+        behavior: "smooth",
+      });
+    });
   }
 
   if (metadataLoading) {
@@ -502,118 +539,65 @@ export function GroupTasksPageClient({
     !tasksLoading;
 
   return (
-    <main className="mx-auto min-h-[calc(100vh-65px)] max-w-6xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+    <main className="h-[calc(100vh-65px)] overflow-hidden px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto grid h-full max-w-[1600px] grid-cols-[15rem_minmax(0,1fr)] gap-5 xl:grid-cols-[18rem_minmax(0,1fr)]">
+      <aside className="min-h-0 overflow-y-auto py-5">
       <div className="mb-4">
         <Link
           href={`/mypage/${userId}/groups`}
-          className="inline-flex items-center rounded-lg px-2 py-1 text-sm font-semibold text-blue-700 hover:bg-blue-50"
+          className="inline-flex items-center rounded-lg px-2 py-1 text-base font-bold text-blue-700 hover:bg-blue-50"
         >
           ← グループ一覧へ戻る
         </Link>
       </div>
 
-      <header className="mb-8">
-        <p className="mb-2 text-sm font-medium text-blue-700">
-          ログイン中: {currentUser.user_name}
+      <header className="mb-5">
+        <p className="mb-2 text-base font-semibold text-blue-700">
+          ログイン中: {" "}
+          <span className="text-lg font-extrabold text-blue-950">
+            {currentUser.user_name}
+          </span>
         </p>
 
-        <h1 className="text-3xl font-bold tracking-tight text-slate-950">
+        <h1 className="text-4xl font-extrabold tracking-tight text-slate-950">
           {group.group_name}
         </h1>
 
-        <p className="mt-2 text-slate-500">
+        <p className="mt-2 text-lg font-bold text-slate-700">
           {currentUser.role_name === "admin"
             ? `${userId}番ユーザーのタスク一覧`
             : "担当タスク一覧"}
         </p>
       </header>
 
-      {operationMessage !== null && (
-        <div className="mb-6">
+      <div className="mb-5 min-h-20">
+        {operationMessage !== null && (
           <FeedbackMessage message={operationMessage} />
-        </div>
-      )}
+        )}
+      </div>
 
-      <section
-        aria-labelledby="task-filter-heading"
-        className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)] sm:p-6"
-      >
-        <h2
-          id="task-filter-heading"
-          className="mb-5 text-lg font-bold text-slate-900"
-        >
-          表示条件
-        </h2>
+      <TaskFilters
+        group={group}
+        stateId={stateId}
+        pageSize={pageSize}
+        disabled={tasksLoading}
+        onStateChange={(nextStateId) => {
+          setStateId(nextStateId);
+          setPage(1);
+        }}
+        onPageSizeChange={(nextPageSize) => {
+          setPageSize(nextPageSize);
+          setPage(1);
+        }}
+      />
+      </aside>
 
-        <div className="grid gap-5 sm:grid-cols-2">
-          <div className="grid gap-2">
-            <label
-              htmlFor="state-filter"
-              className="block text-sm font-semibold text-slate-700"
-            >
-              状態
-            </label>
-
-            <select
-              id="state-filter"
-              value={stateId ?? ""}
-              onChange={handleStateChange}
-              disabled={tasksLoading}
-              className="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-800 shadow-sm hover:border-slate-400 disabled:cursor-wait disabled:bg-slate-50"
-            >
-              <option value="">
-                すべて
-              </option>
-
-              {group.state_counts.map(
-                (state) => (
-                  <option
-                    key={state.state_id}
-                    value={state.state_id}
-                  >
-                    {state.state_name}
-                    （{state.count}件）
-                  </option>
-                ),
-              )}
-            </select>
-          </div>
-
-          <div className="grid gap-2">
-            <label
-              htmlFor="page-size"
-              className="block text-sm font-semibold text-slate-700"
-            >
-              1ページの表示件数
-            </label>
-
-            <select
-              id="page-size"
-              value={pageSize}
-              onChange={handlePageSizeChange}
-              disabled={tasksLoading}
-              className="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-800 shadow-sm hover:border-slate-400 disabled:cursor-wait disabled:bg-slate-50"
-            >
-              <option value={10}>
-                10件
-              </option>
-
-              <option value={50}>
-                50件
-              </option>
-
-              <option value={100}>
-                100件
-              </option>
-            </select>
-          </div>
-        </div>
-      </section>
+      <div className="flex min-h-0 flex-col py-5">
 
       {tasksError !== null && (
         <div
           role="alert"
-          className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4"
+          className="mb-3 shrink-0 rounded-lg border border-red-200 bg-red-50 p-4"
         >
           <p className="text-red-700">
             {tasksError.message}
@@ -636,203 +620,43 @@ export function GroupTasksPageClient({
         </div>
       )}
 
-      <section
-        aria-labelledby="task-list-heading"
-        className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.05)]"
-      >
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 px-5 py-4 sm:px-6">
-          <h2
-            id="task-list-heading"
-            className="text-lg font-bold text-slate-900"
-          >
-            タスク一覧
-          </h2>
-
-          <p className="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-600">
-            全{pagination?.total ?? 0}件
-          </p>
-        </div>
-
-        {tasksLoading ? (
-          <LoadingState message="タスクを読み込み中..." />
-        ) : taskData === null ||
-          taskData.tasks.length === 0 ? (
-          <div className="p-5">
-            <EmptyState message="該当するタスクはありません" />
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead className="bg-slate-50">
-                <tr>
-                  <th
-                    scope="col"
-                    className="border-b border-slate-200 px-5 py-3.5 text-left text-xs font-bold uppercase tracking-wide text-slate-500 sm:px-6"
-                  >
-                    画像ID
-                  </th>
-
-                  <th
-                    scope="col"
-                    className="border-b border-slate-200 px-5 py-3.5 text-left text-xs font-bold uppercase tracking-wide text-slate-500 sm:px-6"
-                  >
-                    状態
-                  </th>
-
-                  <th
-                    scope="col"
-                    className="border-b border-slate-200 px-5 py-3.5 text-left text-xs font-bold uppercase tracking-wide text-slate-500 sm:px-6"
-                  >
-                    最終更新日時
-                  </th>
-
-                  <th
-                    scope="col"
-                    className="border-b border-slate-200 px-5 py-3.5 text-left text-xs font-bold uppercase tracking-wide text-slate-500 sm:px-6"
-                  >
-                    状態変更
-                  </th>
-
-                  <th
-                    scope="col"
-                    className="border-b border-slate-200 px-5 py-3.5 text-left text-xs font-bold uppercase tracking-wide text-slate-500 sm:px-6"
-                  >
-                    コメント
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {taskData.tasks.map(
-                  (task) => (
-                    <Fragment key={task.task_id}>
-                    <tr
-                      className="hover:bg-blue-50/50"
-                    >
-                      <td className="border-b border-slate-100 px-5 py-4 font-semibold text-slate-900 sm:px-6">
-                        {task.image_id}
-                      </td>
-
-                      <td className="border-b border-slate-100 px-5 py-4 sm:px-6">
-                        <span className="inline-flex rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-700">
-                          {task.state_name}
-                        </span>
-                      </td>
-
-                      <td className="border-b border-slate-100 px-5 py-4 text-sm text-slate-600 sm:px-6">
-                        {formatDateTime(
-                          task.updated_at,
-                        )}
-                      </td>
-
-                      <td className="border-b border-slate-100 px-5 py-4 sm:px-6">
-                        <div className="flex min-w-64 flex-wrap items-center gap-2">
-                          <label
-                            htmlFor={`task-state-${task.task_id}`}
-                            className="sr-only"
-                          >
-                            画像{task.image_id}の状態
-                          </label>
-
-                          <select
-                            id={`task-state-${task.task_id}`}
-                            value={selectedStateIds[task.task_id] ?? task.state_id}
-                            onChange={(event) => {
-                              const nextStateId = Number(event.target.value);
-                              setSelectedStateIds((currentValues) => ({
-                                ...currentValues,
-                                [task.task_id]: nextStateId,
-                              }));
-                              setTaskUpdateErrors((currentErrors) => {
-                                const nextErrors = { ...currentErrors };
-                                delete nextErrors[task.task_id];
-                                return nextErrors;
-                              });
-                            }}
-                            disabled={updatingTaskIds.has(task.task_id)}
-                            className="min-h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 disabled:cursor-wait disabled:bg-slate-100"
-                          >
-                            {group.state_counts.map((state) => (
-                              <option
-                                key={state.state_id}
-                                value={state.state_id}
-                              >
-                                {state.state_name}
-                              </option>
-                            ))}
-                          </select>
-
-                          <button
-                            type="button"
-                            disabled={
-                              updatingTaskIds.has(task.task_id) ||
-                              (selectedStateIds[task.task_id] ?? task.state_id) === task.state_id
-                            }
-                            onClick={() => {
-                              void handleTaskStateUpdate(task.task_id);
-                            }}
-                            className="min-h-10 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-                          >
-                            {updatingTaskIds.has(task.task_id)
-                              ? "更新中..."
-                              : "更新"}
-                          </button>
-                        </div>
-
-                        {taskUpdateErrors[task.task_id] !== undefined && (
-                          <p
-                            role="alert"
-                            className="mt-2 max-w-80 text-sm font-medium text-red-700"
-                          >
-                            {taskUpdateErrors[task.task_id]}
-                          </p>
-                        )}
-                      </td>
-
-                      <td className="border-b border-slate-100 px-5 py-4 sm:px-6">
-                        <button
-                          type="button"
-                          aria-expanded={openCommentsTaskId === task.task_id}
-                          aria-controls={`task-comments-${task.task_id}`}
-                          onClick={() => {
-                            setOpenCommentsTaskId((currentTaskId) =>
-                              currentTaskId === task.task_id
-                                ? null
-                                : task.task_id,
-                            );
-                          }}
-                          className="min-h-10 whitespace-nowrap rounded-lg border border-blue-200 bg-blue-50 px-4 text-sm font-semibold text-blue-700 hover:border-blue-300 hover:bg-blue-100"
-                        >
-                          {openCommentsTaskId === task.task_id
-                            ? "コメントを閉じる"
-                            : "コメントを表示"}
-                        </button>
-                      </td>
-                    </tr>
-
-                    {openCommentsTaskId === task.task_id && (
-                      <tr id={`task-comments-${task.task_id}`}>
-                        <td colSpan={5} className="p-0">
-                          <TaskCommentsPanel
-                            taskId={task.task_id}
-                            imageId={task.image_id}
-                            onUnauthorized={handleUnauthorized}
-                          />
-                        </td>
-                      </tr>
-                    )}
-                    </Fragment>
-                  ),
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+      <TaskTable
+        taskData={taskData}
+        stateCounts={group.state_counts}
+        loading={tasksLoading}
+        activeTaskId={activeTaskId}
+        openCommentsTaskId={openCommentsTaskId}
+        commentComposer={commentComposer}
+        updatingTaskIds={updatingTaskIds}
+        taskUpdateErrors={taskUpdateErrors}
+        scrollRef={taskScrollRef}
+        onTaskRowRef={(taskId, element) => {
+          if (element === null) {
+            taskRowRefs.current.delete(taskId);
+          } else {
+            taskRowRefs.current.set(taskId, element);
+          }
+        }}
+        onStateSelect={(task, state) => {
+          void handleTaskStateUpdate(
+            task.task_id,
+            state.state_id,
+            state.state_name,
+          );
+        }}
+        onToggleComments={(taskId) => {
+          setOpenCommentsTaskId((currentTaskId) =>
+            currentTaskId === taskId ? null : taskId,
+          );
+          setCommentComposer(null);
+        }}
+        onUnauthorized={handleUnauthorized}
+        onCommentCompleted={highlightTaskAndAdvance}
+      />
 
       <nav
         aria-label="タスク一覧のページ移動"
-        className="mt-6 flex items-center justify-center gap-4"
+        className="mt-3 flex shrink-0 items-center justify-center gap-4"
       >
         <button
           type="button"
@@ -866,6 +690,8 @@ export function GroupTasksPageClient({
           次へ
         </button>
       </nav>
+      </div>
+      </div>
     </main>
   );
 }
