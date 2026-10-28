@@ -12,7 +12,7 @@ services:
         - -c
         - >-
           import urllib.request;
-          urllib.request.urlopen('http://localhost:8000/health')
+          urllib.request.urlopen('http://localhost:8000/health/database')
       interval: 10s
       timeout: 5s
       retries: 5

@@ -2,6 +2,12 @@
 
 ## API構成
 
+- GET /health
+  - FastAPIプロセスの生存確認
+
+- GET /health/database
+  - データベースへ `SELECT 1` を実行する稼働確認
+
 - POST /api/auth/login
   - ログインの情報送信
 
@@ -27,6 +33,16 @@
   - 各タスクのコメント一覧取得
 
 ## APIのデータ構成
+
+- GET /health
+  - 成功時は `200` と `{ "status": "ok" }` を返す
+  - データベースの状態は確認しない
+
+- GET /health/database
+  - MySQLまたは開発用SQLiteへ実際に接続し、`SELECT 1` を実行する
+  - 接続成功時は `200` と `{ "status": "ok", "database": "connected" }` を返す
+  - 接続失敗時は `503` と `{ "status": "error", "database": "unavailable" }` を返す
+  - 接続先、ユーザー名、パスワード、完全な接続URLはレスポンスへ含めない
 
 - POST /api/auth/login
   - 処理手順

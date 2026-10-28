@@ -19,6 +19,9 @@ services:
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
+      DB_SSL_CA: ${DB_SSL_CA:-}
+      DB_CONNECT_TIMEOUT: ${DB_CONNECT_TIMEOUT:-5}
+      DB_POOL_RECYCLE: ${DB_POOL_RECYCLE:-1800}
     depends_on:
       backend:
         condition: service_healthy
@@ -49,7 +52,7 @@ services:
         - -c
         - >-
           import urllib.request;
-          urllib.request.urlopen('http://localhost:8000/health')
+          urllib.request.urlopen('http://localhost:8000/health/database')
       interval: 5s
       timeout: 3s
       retries: 20
