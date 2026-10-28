@@ -1,0 +1,13 @@
+# Local only: load fixture data into SQLite instead of connecting to MySQL.
+# Apply after docker-compose.base.yaml and docker-compose.dev.yaml.
+services:
+  backend:
+    environment:
+      APP_ENV: development
+      APP_DATA_MODE: mock
+      DATABASE_URL: sqlite:////data/check_annotator_mock.db
+  workspace:
+    environment:
+      APP_ENV: development
+      APP_DATA_MODE: mock
+      DATABASE_URL: sqlite:////data/check_annotator_mock.db

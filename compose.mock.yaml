@@ -1,0 +1,8 @@
+name: check-annotator
+
+# Local development with persistent SQLite fixtures.
+include:
+  - path:
+      - docker-compose.base.yaml
+      - docker-compose.dev.yaml
+      - docker-compose.mock.yaml
