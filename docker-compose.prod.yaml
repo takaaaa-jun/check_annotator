@@ -1,8 +1,17 @@
 services:
   backend:
+    image: check-annotator-backend:production
+    environment:
+      APP_ENV: production
+      APP_DATA_MODE: database
     build:
       target: production
     restart: unless-stopped
+    networks:
+      app-network: {}
+      shared-gateway-net:
+        aliases:
+          - check_annotator-backend
     expose:
       - "8000"
     healthcheck:
@@ -19,11 +28,25 @@ services:
       start_period: 10s
 
   frontend:
+    image: check-annotator-frontend:production
     build:
       target: production
     restart: unless-stopped
-    ports:
-      - "3000:3000"
+    networks:
+      app-network: {}
+      shared-gateway-net:
+        aliases:
+          - check_annotator-frontend
+    environment:
+      PORT: "80"
+      HOSTNAME: "0.0.0.0"
+      INTERNAL_API_URL: ${INTERNAL_API_URL:-http://check_annotator-backend:8000}
+    expose:
+      - "80"
     depends_on:
       backend:
         condition: service_healthy
+
+networks:
+  shared-gateway-net:
+    external: true

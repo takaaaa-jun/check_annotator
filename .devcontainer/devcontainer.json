@@ -1,7 +1,7 @@
 {
   "name": "check_annotator",
   "dockerComposeFile": [
-    "../docker-compose.yaml",
+    "../docker-compose.base.yaml",
     "../docker-compose.dev.yaml"
   ],
   "service": "workspace",
@@ -28,9 +28,5 @@
         "python.defaultInterpreterPath": "/usr/local/bin/python"
       }
     }
-  },
-  "forwardPorts": [
-    3000,
-    8000
-  ]
+  }
 }

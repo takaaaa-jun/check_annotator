@@ -17,16 +17,15 @@ $ComposeArgs = @(
     "--env-file", ".env"
 )
 
-if ($Mock) {
-    $ComposeArgs += @(
-        "--env-file", "docker-compose.mock.env"
-    )
-}
 
 $ComposeArgs += @(
-    "-f", "docker-compose.yaml",
+    "-f", "docker-compose.base.yaml",
     "-f", "docker-compose.dev.yaml"
 )
+
+if ($Mock) {
+    $ComposeArgs += @("-f", "docker-compose.mock.yaml")
+}
 
 if ($Reset) {
     docker compose @ComposeArgs run --rm --no-deps backend `
@@ -64,4 +63,4 @@ if ($Mock) {
     Write-Host "Mock login: takahashi / test1"
 }
 
-Write-Host "Open: http://localhost:3000/check_annotator/login"
+Write-Host "Open: http://localhost/check_annotator/login"
