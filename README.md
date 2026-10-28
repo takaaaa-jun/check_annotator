@@ -74,110 +74,95 @@
 
 バックエンドの稼働だけを確認する場合は `GET /health`、データベースへの疎通まで確認する場合は `GET /health/database` を使用する。Docker Composeのヘルスチェックは後者を使用するため、MySQLへ接続できないバックエンドは正常状態にならない。
 
-## 起動方法
+## 開発とサーバー反映の方針
 
-```bash
-cd C:\srv\check_annotator
+ローカルで開発・確認し、サーバーにはGitで確定した変更をcloneまたはpullして本番用Composeで反映する。サーバーで開発用Composeを起動する必要はない。開発用Composeはローカルのホットリロードと動作確認に使用するため残す。
 
-docker compose `
-  --env-file .env `
-  --env-file docker-compose.mock.env `
-  -f docker-compose.yaml `
-  -f docker-compose.dev.yaml `
-  up -d --build --force-recreate backend frontend
+APIのURLと処理は共通にし、backendが使うデータ元を切り替える。ブラウザからDBへ直接接続する構成にはしない。
 
-.\scripts\dev-compose.ps1 -Mock -Build
-.\scripts\dev-compose.ps1 -Mock -Reset -Build
+| 実行場所・用途 | Composeの指定順 | データ元 | ブラウザのアクセス先 |
+| --- | --- | --- | --- |
+| ローカル・DB確認 | 共通 → dev | `.env`に指定したサーバーのMySQL | `http://localhost/check_annotator/login` |
+| ローカル・モック確認 | 共通 → dev → mock | JSONから初期化した専用SQLite | 同上 |
+| サーバー配信 | compose.yaml（共通 → prod） | サーバー用`.env`に指定したMySQL | `http://<サーバー>/check_annotator/login` |
 
-#########
+`.env`は各環境に個別に用意する。DB確認には`DB_HOST`・`DB_PORT`・`DB_NAME`・`DB_USER`・`DB_PASSWORD`を設定する。`DATABASE_URL`が設定されている場合はそちらが優先される。サーバーDBへ接続するローカル環境では、そのサーバーに届くホスト名またはIPを指定する。DBモードでの更新操作は接続先DBへ保存されるため、開発用DBを使用する。
 
-docker compose `
-  --env-file .env `
-  -f docker-compose.yaml `
-  -f docker-compose.dev.yaml `
-  up -d --build --force-recreate backend frontend
+認証用の`AUTH_SECRET_KEY`はモックでも必要。秘密値を含む`.env`はGitへ登録せず、サーバーにも別途作成する。サーバーでは`APP_ENV=production`・`APP_DATA_MODE=database`とし、`CORS_ORIGINS`を実際にブラウザで開くオリジンへ合わせる。
 
-.\scripts\dev-compose.ps1 -Build
+## 簡単な起動・停止
 
-docker compose `
-  --env-file .env `
-  --env-file docker-compose.mock.env `
-  -f docker-compose.yaml `
-  -f docker-compose.dev.yaml `
-  ps
+Docker Compose 2.20.0以降を使用する。Docker Desktopとgatewayを先に起動し、各環境に`.env`を用意する。
 
-docker compose `
-  --env-file .env `
-  --env-file docker-compose.mock.env `
-  -f docker-compose.yaml `
-  -f docker-compose.dev.yaml `
-  stop
+```powershell
+# 本番用（MySQL）: compose.yamlが共通＋本番設定を読み込む
+# 初回はイメージが自動ビルドされる
+docker compose up -d
 
-docker compose `
-  --env-file .env `
-  --env-file docker-compose.mock.env `
-  -f docker-compose.yaml `
-  -f docker-compose.dev.yaml `
-  start
+# モック用（SQLite・ホットリロード）
+docker compose -f compose.mock.yaml up -d
 
-docker compose `
-  --env-file .env `
-  --env-file docker-compose.mock.env `
-  -f docker-compose.yaml `
-  -f docker-compose.dev.yaml `
-  down
+# 本番用のログ確認・停止
+docker compose logs --tail 100 backend frontend
+docker compose down
 
-docker compose `
-  --env-file .env `
-  --env-file docker-compose.mock.env `
-  -f docker-compose.yaml `
-  -f docker-compose.dev.yaml `
-  down --volumes
-
-docker compose `
-  --env-file .env `
-  --env-file docker-compose.mock.env `
-  -f docker-compose.yaml `
-  -f docker-compose.dev.yaml `
-  exec backend `
-  python -m pytest
-
-docker compose `
-  --env-file .env `
-  --env-file docker-compose.mock.env `
-  -f docker-compose.yaml `
-  -f docker-compose.dev.yaml `
-  exec frontend `
-  npm test
-
-
-docker compose `
-  --env-file .env `
-  --env-file docker-compose.mock.env `
-  -f docker-compose.yaml `
-  -f docker-compose.dev.yaml `
-  exec frontend `
-  npm run typecheck
-
-docker compose `
-  --env-file .env `
-  --env-file docker-compose.mock.env `
-  -f docker-compose.yaml `
-  -f docker-compose.dev.yaml `
-  exec frontend `
-  npm run lint
-
-
-# モックモード
-.\scripts\dev-compose.ps1 -Mock
-
-# モックデータを初期化して起動
-.\scripts\dev-compose.ps1 -Mock -Reset
-
-# MySQLモード
-.\scripts\dev-compose.ps1
+# モック用のログ確認・停止
+docker compose -f compose.mock.yaml logs --tail 100 backend frontend
+docker compose -f compose.mock.yaml down
 ```
 
-##
+`-mock`はDocker Composeに存在しないため、モック用ファイルを`-f`で指定する。本番・モックは同じプロジェクト名とサービス名を使用し、コマンドを切り替えると同じアプリが再作成される。同時には起動しない。両モードのイメージ名を分け、開発用イメージが本番で使われることを防いでいる。コード更新・依存関係変更後は`up -d --build`で再ビルドする。`down -v`はモックの保存データも削除するため通常は使用しない。
+
+本番用は`APP_ENV=production`・`APP_DATA_MODE=database`を固定する。モック用は開発モードと専用SQLiteを固定する。開発支援用の`workspace`サービスは`workspace`プロファイルに分離し、通常の起動では開始しない。Dev Containerでの明示的な起動は引き続き利用できる。
+
+## ローカルで起動する（PowerShell）
+
+Docker Desktopとgatewayを先に起動する。共有ネットワーク`shared-gateway-net`はgatewayと共通で使用する。gatewayが起動済みなら、アプリのリポジトリのルートで以下を実行する。
+
+```powershell
+# モックデータで開発する（初回・依存関係変更時は-Build）
+.\scripts\dev-compose.ps1 -Mock -Build
+
+# サーバーDBで確認する（接続先は.envで指定）
+.\scripts\dev-compose.ps1 -Build
+```
+
+起動後は`http://localhost/check_annotator/login`へアクセスする。コードの変更は開発サーバーへ反映される。ローカルでもgatewayを経由し、ホストで公開するのはgatewayの80番のみとする。開発用・本番用ともfrontendは内部80番、backendは内部8000番を使用し、アプリ側の`ports`は指定しない。開発用設定はホットリロードとモック切り替えのために残すが、開発専用ポートは設けない。
+
+コマンドを切り替えると同じローカルのfrontend・backendが再作成され、選択したデータ元が適用される。DB接続に失敗しても自動的にモックへ切り替えない。backendのヘルスチェックに成功するとfrontendが起動する。
+
+モックは`backend/app/mock/data/`のJSONを元に、名前付きボリューム`backend-mock-data`内の`/data/check_annotator_mock.db`へ初期化する。通常の再起動では編集内容を保持する。モックデータを初期状態へ戻す場合のみ以下を実行する（モックの変更内容は失われる）。
+
+```powershell
+.\scripts\dev-compose.ps1 -Mock -Reset
+```
+
+起動スクリプトを使わない場合も、モック用設定を必ず最後に指定する。
+
+```powershell
+docker compose --env-file .env -f docker-compose.base.yaml -f docker-compose.dev.yaml -f docker-compose.mock.yaml up -d --build backend frontend
+```
+
+ログ確認・停止は、起動時と同じファイルの組み合わせで実行する。DBモードの場合は最後の`-f docker-compose.mock.yaml`を省略する。
+
+```powershell
+docker compose --env-file .env -f docker-compose.base.yaml -f docker-compose.dev.yaml -f docker-compose.mock.yaml logs --tail 100 backend frontend
+docker compose --env-file .env -f docker-compose.base.yaml -f docker-compose.dev.yaml -f docker-compose.mock.yaml down
+```
+
+## サーバーで反映する
+
+初回はリポジトリをcloneし、`.env.example`を参考にサーバー専用の`.env`を作成する。共有ネットワーク`shared-gateway-net`とgatewayを用意する。更新時は作業中の変更を確認してから、アプリのディレクトリで以下を実行する。
+
+```sh
+git pull --ff-only
+docker compose config --quiet
+docker compose up -d --build
+docker compose ps
+```
+
+設定検証に成功してから起動する。本番用と開発用・モック用の上書きファイルは同時に指定しない。既存のbackendは本番モードでのモック利用を拒否する。サーバーのfrontend・backendはホストへ直接ポート公開せず、gateway経由でアクセスする。
+
+この手順はアプリの反映であり、DBの作成・スキーマ変更は別途管理する。コード更新だけならgatewayの再読み込みは不要。gatewayの設定も変更した場合は、gatewayディレクトリで`nginx -t`を実行し、成功後に再読み込みする。
 
 Copyright &copy; 2026 Jun Takahashi, Yamazaki Lab, University of Niigata. All rights reserved.

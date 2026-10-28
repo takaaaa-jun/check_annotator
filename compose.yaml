@@ -1,0 +1,7 @@
+name: check-annotator
+
+# Default entry point: production services connected to MySQL.
+include:
+  - path:
+      - docker-compose.base.yaml
+      - docker-compose.prod.yaml

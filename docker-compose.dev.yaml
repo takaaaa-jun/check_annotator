@@ -1,5 +1,6 @@
 services:
   workspace:
+    profiles: [workspace]
     build:
       context: .
       dockerfile: .devcontainer/Dockerfile
@@ -9,11 +10,11 @@ services:
       - .:/workspace/check_annotator
       - backend-mock-data:/data
     environment:
-      APP_ENV: ${APP_ENV:-development}
-      APP_DATA_MODE: ${APP_DATA_MODE:-database}
+      APP_ENV: development
+      APP_DATA_MODE: database
       DATABASE_URL: ${DATABASE_URL:-}
       AUTH_SECRET_KEY: ${AUTH_SECRET_KEY}
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost}
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT:-3306}
       DB_NAME: ${DB_NAME}
@@ -29,6 +30,16 @@ services:
         condition: service_started
 
   backend:
+    image: check-annotator-backend:development
+    networks:
+      app-network: {}
+      shared-gateway-net:
+        aliases:
+          - check_annotator-backend
+    environment:
+      APP_ENV: development
+      APP_DATA_MODE: database
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost}
     build:
       target: development
     working_dir: /workspace/check_annotator/backend
@@ -43,8 +54,8 @@ services:
     volumes:
       - .:/workspace/check_annotator
       - backend-mock-data:/data
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     healthcheck:
       test:
         - CMD
@@ -59,6 +70,17 @@ services:
       start_period: 10s
 
   frontend:
+    image: check-annotator-frontend:development
+    networks:
+      app-network: {}
+      shared-gateway-net:
+        aliases:
+          - check_annotator-frontend
+    environment:
+      PORT: "80"
+      # Poll bind-mounted files, including Next.js route discovery on Docker Desktop.
+      WATCHPACK_POLLING: "true"
+      INTERNAL_API_URL: http://check_annotator-backend:8000
     build:
       target: development
     working_dir: /workspace/frontend
@@ -73,10 +95,14 @@ services:
       - ./frontend:/workspace/frontend
       - frontend-node-modules:/workspace/frontend/node_modules
       - frontend-next:/workspace/frontend/.next
-    ports:
-      - "3000:3000"
+    expose:
+      - "80"
 
 volumes:
   frontend-node-modules:
   frontend-next:
   backend-mock-data:
+
+networks:
+  shared-gateway-net:
+    external: true
