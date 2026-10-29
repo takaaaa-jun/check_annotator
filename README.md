@@ -152,6 +152,10 @@ docker compose --env-file .env -f docker-compose.base.yaml -f docker-compose.dev
 
 ## サーバーで反映する
 
+新規MySQLの6テーブルと初期データの作成には、[DB初期化手順](docs/DB初期化.md)を使用する。
+初期化専用パスワードとDB名の二重確認後、SQL適用・スキーマ検証・DBヘルスチェックを実行する。
+既存テーブルがあるDBは上書きせず停止する。
+
 初回はリポジトリをcloneし、`.env.example`を参考にサーバー専用の`.env`を作成する。共有ネットワーク`shared-gateway-net`とgatewayを用意する。更新時は作業中の変更を確認してから、アプリのディレクトリで以下を実行する。
 
 ```sh
