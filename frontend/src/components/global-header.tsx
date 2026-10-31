@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -61,6 +62,9 @@ export function GlobalHeader() {
 
         {protectedPage && (
           <div className="flex items-center gap-3">
+            <Link href="/categories" className="rounded-lg px-3 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-50">
+              カテゴリ確認
+            </Link>
             {currentUser !== null && (
               <p className="hidden text-sm text-slate-600 md:block">
                 ログイン中: <span className="font-semibold text-slate-900">{currentUser.user_name}</span>

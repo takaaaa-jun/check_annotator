@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   Fragment,
   type RefObject,
@@ -133,6 +134,13 @@ export function TaskTable({
                   >
                     <td className="break-words border-b border-slate-100 px-2 py-4 text-center text-lg font-extrabold text-slate-950 xl:px-4">
                       {task.image_id}
+                      <Link
+                        href={`/categories?imageId=${task.image_id}`}
+                        className="mt-1 block text-xs font-semibold text-blue-800 underline underline-offset-2"
+                        aria-label={`画像${task.image_id}のカテゴリを確認`}
+                      >
+                        カテゴリ確認
+                      </Link>
                     </td>
                     <td className="border-b border-slate-100 px-2 py-4 text-center xl:px-4">
                       <TaskStateBadge stateName={task.state_name} />
