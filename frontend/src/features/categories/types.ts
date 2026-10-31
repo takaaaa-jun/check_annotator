@@ -13,6 +13,7 @@ export type ReviewBox = {
   originalCategoryId: number;
   bbox: [number, number, number, number];
   revision: string;
+  isBox?: boolean;
 };
 export type ImageReview = {
   datasetId: number;
@@ -21,6 +22,7 @@ export type ImageReview = {
   width: number;
   height: number;
   boxes: ReviewBox[];
+  categories?: Category[];
 };
 export type Replacement = {
   datasetId: number;

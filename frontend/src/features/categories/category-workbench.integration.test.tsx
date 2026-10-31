@@ -3,6 +3,7 @@ import { cleanup, render, screen, within, waitFor } from "@testing-library/react
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CategoryWorkbench } from "./category-workbench";
+import { demoCatalog, demoImage } from "./fixtures";
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
@@ -22,17 +23,17 @@ describe("カテゴリ確認画面", () => {
     await waitFor(() => expect(within(row1).getByRole("button", { name: "置換済み" })).toBeDisabled());
     expect(within(row2).getByRole("button", { name: "置き換えを確認" })).toBeEnabled();
     expect(within(row1).getByText("元カテゴリA")).toBeInTheDocument();
+    expect(screen.getByRole("status", { name: "カテゴリの変更通知" })).toHaveTextContent("「元カテゴリA」から「テスト1」に変更しました");
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   });
-  it("未対応カテゴリの自動置換を禁止し、別名から新カテゴリを検索できる", async () => {
-    const user = userEvent.setup();
+  it("参照画面に新規付与の検索や操作を表示しない", async () => {
     render(<CategoryWorkbench />);
     const row = (await screen.findByRole("button", { name: "#90003" })).closest("tr")!;
     expect(within(row).getByRole("button", { name: "置き換えを確認" })).toBeDisabled();
-    await user.type(screen.getByRole("textbox", { name: "名前・別名・IDで検索" }), "bread");
-    expect(screen.getAllByRole("button", { name: "このカテゴリを試す" })).toHaveLength(1);
-    await user.click(screen.getByRole("button", { name: "このカテゴリを試す" }));
-    expect(screen.getByRole("status")).toHaveTextContent("仮カテゴリは実DBへ送信しません");
+    expect(screen.queryByRole("textbox", { name: "名前・別名・IDで検索" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "このカテゴリを試す" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "このカテゴリで矩形を描く" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "COCO Annotatorで付与済みのカテゴリ" })).toBeInTheDocument();
   });
   it("実APIの未設定エラーでテストデータを残さず、書き込みもしない", async () => {
     const fetch = vi.fn().mockResolvedValue({ ok: false, status: 503, json: async () => ({ message: "カテゴリ対応表が未設定です" }) });
@@ -44,5 +45,39 @@ describe("カテゴリ確認画面", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("未設定");
     expect(screen.queryByRole("button", { name: "#90001" })).not.toBeInTheDocument();
     expect(fetch.mock.calls.every((call) => !call[1]?.method)).toBe(true);
+  });
+  it("COCO側の変更と追加をフォーカス復帰時に通知し、再取得では重複しない", async () => {
+    const current = structuredClone(demoImage);
+    const fetch = vi.fn().mockImplementation(async (url: string) => ({ ok: true, json: async () => url.endsWith("/catalog") ? demoCatalog : structuredClone(current) }));
+    vi.stubGlobal("fetch", fetch);
+    const user = userEvent.setup();
+    render(<CategoryWorkbench />);
+    await screen.findByRole("button", { name: "#90001" });
+    await user.selectOptions(screen.getByRole("combobox", { name: "データ元" }), "live");
+    await waitFor(() => expect(screen.getByRole("button", { name: "再読み込み" })).toBeEnabled());
+    current.boxes[0].categoryId = 101;
+    current.boxes.push({ ...current.boxes[0], id: 90004 });
+    window.dispatchEvent(new Event("focus"));
+    const notice = await screen.findByRole("status", { name: "カテゴリの変更通知" });
+    expect(notice).toHaveTextContent("「元カテゴリA」から「テスト1」に変更しました");
+    expect(notice).toHaveTextContent("「テスト1」を追加しました");
+    await user.click(screen.getByRole("button", { name: "再読み込み" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "再読み込み" })).toBeEnabled());
+    expect(within(notice).getAllByRole("listitem")).toHaveLength(2);
+    expect(fetch.mock.calls.every((call) => !call[1]?.method)).toBe(true);
+  });
+  it("対応表が未設定でも実際の付与済みカテゴリを参照できる", async () => {
+    const image = { ...demoImage, categories: [{ id: 1, name: "COCOのパン", aliases: [] }] };
+    vi.stubGlobal("fetch", vi.fn().mockImplementation(async (url: string) => url.endsWith("/catalog")
+      ? { ok: false, status: 503, json: async () => ({ message: "置換対応表が未設定です" }) }
+      : { ok: true, json: async () => image }));
+    const user = userEvent.setup();
+    render(<CategoryWorkbench />);
+    await screen.findByRole("button", { name: "#90001" });
+    await user.selectOptions(screen.getByRole("combobox", { name: "データ元" }), "live");
+    await screen.findByText("置換対応表が利用できないため、参照のみ可能です。");
+    expect(screen.getAllByText("COCOのパン").length).toBeGreaterThan(0);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByRole("status", { name: "カテゴリの変更通知" })).not.toBeInTheDocument();
   });
 });

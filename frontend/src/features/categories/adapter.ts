@@ -49,6 +49,14 @@ export function liveAdapter(): CategoryAdapter {
     replace(data: Replacement) { return request<ReviewBox>(`/annotations/${data.annotationId}/category`, { method: "PUT", body: JSON.stringify(data) }); },
   };
 }
+export async function readReview(adapter: CategoryAdapter, imageId: number) {
+  const [catalogResult, imageResult] = await Promise.allSettled([adapter.catalog(), adapter.image(imageId)]);
+  if (imageResult.status === "rejected") throw imageResult.reason;
+  const catalog = catalogResult.status === "fulfilled" ? catalogResult.value : null;
+  const image = imageResult.value;
+  if (catalog && catalog.datasetId !== image.datasetId) throw new Error("画像と対応表のデータセットが一致しません。");
+  return { catalog, image, warning: catalogResult.status === "rejected" ? String(catalogResult.reason instanceof Error ? catalogResult.reason.message : "置換対応表を読み込めません。") : "" };
+}
 export function editorUrl(imageId: number, datasetId: number, categoryId: number): string {
   const query = new URLSearchParams({ dataset_id: String(datasetId), category_id: String(categoryId), tool: "bbox" });
   // The document query forces an image reload when reusing the named editor tab.
