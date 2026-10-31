@@ -34,7 +34,9 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   });
   const data = await response.json().catch(() => null);
   if (!response.ok) {
-    const message = data?.message ?? (response.status === 401 ? "COCO Annotatorにログインしてください。" : `接続に失敗しました（HTTP ${response.status}）。`);
+    const message = response.status === 401
+      ? "COCO Annotatorにログインしてから、再読み込みしてください。"
+      : data?.message ?? `接続に失敗しました（HTTP ${response.status}）。`;
     if (response.status === 409) throw new CategoryConflict(message);
     throw new Error(message);
   }

@@ -1,7 +1,14 @@
-import { describe, expect, it } from "vitest";
-import { CategoryConflict, demoAdapter, editorUrl } from "./adapter";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { CategoryConflict, demoAdapter, editorUrl, liveAdapter } from "./adapter";
 import { parseCatalog, searchCategories } from "./catalog";
 import { demoCatalog } from "./fixtures";
+
+afterEach(() => vi.unstubAllGlobals());
+
+it("COCOの未ログイン応答を日本語で説明する", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 401, json: async () => ({ message: "Authorization required" }) }));
+  await expect(liveAdapter().catalog()).rejects.toThrow("COCO Annotatorにログイン");
+});
 
 describe("カテゴリ対応表", () => {
   it("名前・別名・全角の数字を検索できる", () => {
