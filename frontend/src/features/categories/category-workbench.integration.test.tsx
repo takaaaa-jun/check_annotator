@@ -8,6 +8,16 @@ import { demoCatalog, demoImage } from "./fixtures";
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 describe("カテゴリ確認画面", () => {
+  it("行内表示は指定された画像IDの実データを参照し、画像切り替えや仮データの操作を出さない", async () => {
+    const fetch = vi.fn().mockImplementation(async (url: string) => ({ ok: true, json: async () => url.endsWith("/catalog") ? demoCatalog : { ...demoImage, imageId: 4050 } }));
+    vi.stubGlobal("fetch", fetch);
+    render(<CategoryWorkbench imageId={4050} embedded />);
+    await screen.findByRole("button", { name: "#90001" });
+    expect(fetch.mock.calls.some((call) => call[0].endsWith("/images/4050"))).toBe(true);
+    expect(screen.getByRole("region", { name: "画像4050のカテゴリ確認" })).toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: "データ元" })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("画像ID")).not.toBeInTheDocument();
+  });
   it("キャンセルでは更新せず、確認したボックス一つだけを置換する", async () => {
     const user = userEvent.setup();
     render(<CategoryWorkbench />);

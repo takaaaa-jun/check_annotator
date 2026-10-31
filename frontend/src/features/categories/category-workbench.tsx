@@ -12,8 +12,8 @@ const button = "min-h-11 rounded-lg border border-blue-300 bg-blue-50 px-4 py-2 
 const field = "min-h-11 rounded-lg border border-slate-300 bg-white px-3 py-2";
 function message(error: unknown) { return error instanceof Error ? error.message : "処理に失敗しました。"; }
 
-export function CategoryWorkbench() {
-  const [mode, setMode] = useState<"demo" | "live">("demo");
+export function CategoryWorkbench({ imageId, embedded = false }: { imageId?: number; embedded?: boolean } = {}) {
+  const [mode, setMode] = useState<"demo" | "live">(embedded ? "live" : "demo");
   const [demoData, setDemoData] = useState(demoCatalog);
   const adapter = useMemo(() => mode === "demo" ? demoAdapter(demoData) : liveAdapter(), [mode, demoData]);
   const adapterRef = useRef<CategoryAdapter>(adapter);
@@ -37,7 +37,7 @@ export function CategoryWorkbench() {
     const counter = epoch;
     const requestEpoch = ++counter.current;
     operation.current = true;
-    const initialId = Number(new URLSearchParams(window.location.search).get("imageId")) || 4001;
+    const initialId = imageId ?? (Number(new URLSearchParams(window.location.search).get("imageId")) || 4001);
     Promise.resolve().then(() => {
       if (requestEpoch !== counter.current) return null;
       setCatalog(null); setImage(null); setConfirmation(null); setSelectedId(null); setError(""); setNotices([]); setBusy(true);
@@ -54,7 +54,7 @@ export function CategoryWorkbench() {
       .catch((failure) => { if (requestEpoch === epoch.current) setError(message(failure)); })
       .finally(() => { if (requestEpoch === epoch.current) { operation.current = false; setBusy(false); } });
     return () => { ++counter.current; };
-  }, [adapter, mode]);
+  }, [adapter, mode, imageId]);
 
   useEffect(() => { refresh.current = () => { if (mode === "live" && !confirmation) void loadImage(true); }; });
   useEffect(() => {
@@ -130,8 +130,10 @@ export function CategoryWorkbench() {
   const currentName = (box: ReviewBox) => image ? categoryName(image, catalog, box.categoryId) : `カテゴリ #${box.categoryId}`;
   const confirmedTarget = catalog && confirmation ? suggestedCategory(catalog, confirmation) : undefined;
 
+  const Container = embedded ? "section" : "main";
   return (
-    <main className="mx-auto max-w-7xl space-y-6 px-4 py-8 text-slate-900 sm:px-6">
+    <Container className={embedded ? "space-y-4 bg-slate-50 p-4 text-slate-900" : "mx-auto max-w-7xl space-y-6 px-4 py-8 text-slate-900 sm:px-6"} aria-label={embedded ? `画像${imageId}のカテゴリ確認` : undefined}>
+      {embedded ? <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-bold">画像 {imageId} のカテゴリ確認</h2><button className={button} disabled={busy} onClick={() => void loadImage()}>再読み込み</button></div> : <>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div><h1 className="text-2xl font-extrabold">付与済みカテゴリの確認</h1><p className="mt-2 text-slate-600">COCO Annotatorで付けたカテゴリを参照します。カテゴリの追加や描画はCOCO Annotatorで行ってください。</p></div>
         <label className="flex items-center gap-2">データ元<select aria-label="データ元" className={field} value={mode} disabled={busy} onChange={(event) => { setImage(null); setCatalog(null); setConfirmation(null); setBusy(true); setMode(event.target.value as "demo" | "live"); }}><option value="demo">テスト（仮データ）</option><option value="live">COCO Annotator（実データ）</option></select></label>
@@ -146,11 +148,12 @@ export function CategoryWorkbench() {
         <a href={`${APP_BASE_PATH}/category-review.example.json`} download className="py-2 text-sm font-semibold text-blue-800 underline">対応表サンプルをダウンロード</a>
         {catalog && <p className="text-sm text-slate-600">データセット {catalog.datasetId} / 対応表 {catalog.version}</p>}
       </section>
+      </>}
       {busy && <p role="status">処理中です…</p>}
       {error && <p role="alert" className="rounded-lg border border-red-300 bg-red-50 p-4 text-red-800">{error}</p>}
       {notices.length > 0 && <section role="status" aria-label="カテゴリの変更通知" className="rounded-lg border border-green-300 bg-green-50 p-4 text-green-900"><h2 className="font-bold">確認中に検出した変更</h2><ul className="mt-2 space-y-1">{notices.map((notice, index) => <li key={index}>{notice}</li>)}</ul></section>}
-      {image && <div className="grid gap-6 lg:grid-cols-2">
-        <section className="space-y-4 rounded-xl border bg-white p-5">
+      {image && <div className={embedded ? "space-y-4" : "grid gap-6 lg:grid-cols-2"}>
+        {!embedded && <section className="space-y-4 rounded-xl border bg-white p-5">
           <h2 className="text-lg font-bold">画像 {image.imageId}：{image.fileName}</h2>
           <svg viewBox={`0 0 ${image.width} ${image.height}`} className="w-full rounded-lg bg-slate-100" role="img" aria-label="画像とボックスの位置。選択中のボックスを青で表示">
             {mode === "live" && <image href={`/coco-annotator/api/image/${image.imageId}`} width={image.width} height={image.height} />}
@@ -162,7 +165,7 @@ export function CategoryWorkbench() {
           </svg>
           <p className="text-sm text-slate-600">ボックス数：{image.boxes.length}。下の一覧で対象を選んでください。矩形以外のアノテーションは変更対象に含みません。</p>
           {selected && <p className="font-semibold">選択中 #{selected.id} / 座標 [x, y, 幅, 高さ]：{selected.bbox.join(", ")}</p>}
-        </section>
+        </section>}
         <section className="space-y-4 rounded-xl border bg-white p-5" aria-labelledby="assigned-categories">
           <h2 id="assigned-categories" className="text-lg font-bold">COCO Annotatorで付与済みのカテゴリ</h2>
           <p className="text-sm text-slate-600">追加・手動変更はCOCO Annotatorで行い、保存してください。この画面は保存済みの内容を参照します。</p>
@@ -194,6 +197,6 @@ export function CategoryWorkbench() {
           <div className="flex justify-end gap-3"><button autoFocus disabled={busy} className={button} onClick={() => setConfirmation(null)} onKeyDown={(event) => { if (event.key === "Tab" && event.shiftKey) { event.preventDefault(); document.getElementById("confirm-replacement")?.focus(); } }}>キャンセル</button><button id="confirm-replacement" disabled={busy} className={button} onClick={replace} onKeyDown={(event) => { if (event.key === "Tab" && !event.shiftKey) { event.preventDefault(); if (event.currentTarget.previousElementSibling instanceof HTMLElement) event.currentTarget.previousElementSibling.focus(); } }}>この1件を置き換える</button></div>
         </section>
       </div>}
-    </main>
+    </Container>
   );
 }
