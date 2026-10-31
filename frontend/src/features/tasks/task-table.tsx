@@ -142,6 +142,15 @@ export function TaskTable({
                     </td>
                     <td className="border-b border-slate-100 px-2 py-4 text-center xl:px-4">
                       <div className="flex w-full flex-nowrap items-center justify-center gap-0.5">
+                        <a
+                          href={`/coco-annotator/?image=${task.image_id}#/annotate/${task.image_id}`}
+                          target="coco-annotator"
+                          rel="opener"
+                          aria-label={`画像${task.image_id}をCOCO Annotatorで編集（COCO Annotatorのタブを再利用）`}
+                          className="inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-lg border border-blue-400 bg-blue-50 px-2 text-sm font-bold text-blue-800 hover:bg-blue-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
+                        >
+                          画像を編集
+                        </a>
                         <TaskStateControls
                           states={stateCounts}
                           currentStateId={task.state_id}
