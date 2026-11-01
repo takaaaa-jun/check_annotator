@@ -11,6 +11,10 @@ export type AssignmentList = { groups: AssignmentGroup[] };
 export type AssignmentChange = { group_id: number; user_id: number | null; expected_user_id: number | null };
 export function getAssignments() { return apiRequest<AssignmentList>("/api/admin/assignments"); }
 export function saveAssignments(assignments: AssignmentChange[]) { return apiRequest<AssignmentList>("/api/admin/assignments", { method: "POST", body: JSON.stringify({ assignments }) }); }
+export type RangeAssignment = { start_image_id: number; end_image_id: number; user_id: number };
+export type RangeAssignments = { revision: string; ranges: RangeAssignment[]; total_tasks: number; image_id_min: number | null; image_id_max: number | null };
+export function getAssignmentRanges() { return apiRequest<RangeAssignments>("/api/admin/assignment-ranges"); }
+export function saveAssignmentRanges(revision: string, ranges: RangeAssignment[]) { return apiRequest<RangeAssignments>("/api/admin/assignment-ranges", { method: "POST", body: JSON.stringify({ revision, ranges }) }); }
 export type CommentActivity = Comment & {
   task_id: number; image_id: number; group_id: number; group_name: string;
   worker_id: number; worker_name: string; author_role: string;

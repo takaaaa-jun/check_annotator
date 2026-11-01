@@ -10,8 +10,23 @@ from app.services.management_service import ManagementService
 from app.schemas.management import AssignmentList, AssignmentRequest
 from app.services.assignment_service import AssignmentService, AssignmentConflict
 from app.core.exceptions import error_response
+from app.schemas.management import RangeAssignmentList, RangeAssignmentRequest
+from app.services.range_assignment_service import RangeAssignmentService
 
 router = APIRouter(prefix="/api", tags=["management"])
+
+
+@router.get("/admin/assignment-ranges", response_model=RangeAssignmentList)
+def assignment_ranges(user_id: int = Depends(get_authenticated_user_id), db: Session = Depends(get_db)):
+    return RangeAssignmentService(db).list(user_id)
+
+
+@router.post("/admin/assignment-ranges", response_model=RangeAssignmentList)
+def save_assignment_ranges(payload: RangeAssignmentRequest, user_id: int = Depends(get_authenticated_user_id), db: Session = Depends(get_db)):
+    try:
+        return RangeAssignmentService(db).save(user_id, payload)
+    except AssignmentConflict as error:
+        return error_response(409, "ASSIGNMENT_CONFLICT", str(error))
 
 
 @router.get("/admin/assignments", response_model=AssignmentList)
