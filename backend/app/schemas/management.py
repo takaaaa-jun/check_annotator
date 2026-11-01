@@ -71,3 +71,22 @@ class AssignmentChange(BaseModel):
 
 class AssignmentRequest(BaseModel):
     assignments: list[AssignmentChange] = Field(min_length=1, max_length=1000)
+
+
+class RangeAssignment(BaseModel):
+    start_image_id: Annotated[int, Field(gt=0, le=4294967295, strict=True)]
+    end_image_id: Annotated[int, Field(gt=0, le=4294967295, strict=True)]
+    user_id: Annotated[int, Field(gt=0, strict=True)]
+
+
+class RangeAssignmentList(BaseModel):
+    revision: str
+    ranges: list[RangeAssignment]
+    total_tasks: int
+    image_id_min: int | None
+    image_id_max: int | None
+
+
+class RangeAssignmentRequest(BaseModel):
+    revision: str = Field(min_length=64, max_length=64)
+    ranges: list[RangeAssignment] = Field(max_length=1000)
