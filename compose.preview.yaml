@@ -1,0 +1,39 @@
+# Local mock preview only. Existing MySQL and running gateway services are not used.
+name: check-annotator-preview
+services:
+  backend:
+    image: check-annotator-admin-backend:local
+    # The disposable SQLite volume is local-only; production keeps its normal app user.
+    user: "0:0"
+    build:
+      context: ./backend
+      target: production
+    environment:
+      APP_ENV: development
+      APP_DATA_MODE: mock
+      DATABASE_URL: sqlite:////data/admin-preview.db
+      AUTH_SECRET_KEY: local-preview-only-secret-not-for-production-2026
+      CORS_ORIGINS: http://127.0.0.1:18080
+    volumes:
+      - preview-data:/data
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/database')"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+  frontend:
+    image: check-annotator-admin-frontend:local
+    build:
+      context: ./frontend
+      target: production
+    environment:
+      PORT: "80"
+      HOSTNAME: 0.0.0.0
+      INTERNAL_API_URL: http://backend:8000
+    ports:
+      - 127.0.0.1:18080:80
+    depends_on:
+      backend:
+        condition: service_healthy
+volumes:
+  preview-data:

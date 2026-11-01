@@ -35,6 +35,8 @@ type TaskCommentsPanelProps = {
   imageId: number;
   refreshKey?: number;
   initialContent?: string;
+  initialReplyTarget?: Comment | null;
+  replyOnly?: boolean;
   focusKey?: number;
   onUnauthorized: () => void;
   onCompleted?: () => void;
@@ -45,6 +47,8 @@ export function TaskCommentsPanel({
   imageId,
   refreshKey = 0,
   initialContent = "",
+  initialReplyTarget = null,
+  replyOnly = false,
   focusKey = 0,
   onUnauthorized,
   onCompleted,
@@ -61,7 +65,7 @@ export function TaskCommentsPanel({
   const [content, setContent] =
     useState(initialContent);
   const [replyTarget, setReplyTarget] =
-    useState<Comment | null>(null);
+    useState<Comment | null>(initialReplyTarget);
   const [submitting, setSubmitting] =
     useState(false);
   const [submitError, setSubmitError] =
@@ -287,7 +291,7 @@ export function TaskCommentsPanel({
               : `コメント #${replyTarget.comment_id} へ返信`}
           </label>
 
-          {replyTarget !== null && (
+          {replyTarget !== null && !replyOnly && (
             <button
               type="button"
               disabled={submitting}
@@ -495,7 +499,7 @@ export function TaskCommentsPanel({
                 </div>
               </dl>
 
-              <button
+              {!replyOnly && <button
                 type="button"
                 disabled={submitting}
                 onClick={() => {
@@ -505,7 +509,7 @@ export function TaskCommentsPanel({
                 className="mt-3 rounded-lg px-3 py-1.5 text-base font-bold text-blue-700 hover:bg-blue-50 disabled:cursor-not-allowed disabled:text-slate-400"
               >
                 このコメントに返信
-              </button>
+              </button>}
             </li>
           ))}
         </ol>

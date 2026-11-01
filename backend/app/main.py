@@ -16,6 +16,7 @@ from app.api.routers.auth import (
 from app.api.routers.tasks import (
     router as tasks_router,
 )
+from app.api.routers.management import router as management_router
 from app.api.routers.users import (
     router as users_router,
 )
@@ -115,6 +116,7 @@ app.add_exception_handler(
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(tasks_router)
+app.include_router(management_router)
 
 
 @app.get("/health")
