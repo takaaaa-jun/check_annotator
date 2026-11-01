@@ -48,6 +48,14 @@ def test_export_uses_target_level_and_not_internal_ids(catalog_db):
     assert names[19] == 'サンドウィッチ'
     assert names[20] == 'うどん'
     assert names[21] == '天ぷらうどん'
+    udon_key = next(row['targetKey'] for row in data['mappings'] if row['sourceExternalId'] == 20)
+    tempura_udon_key = next(row['targetKey'] for row in data['mappings'] if row['sourceExternalId'] == 21)
+    assert udon_key.startswith('5:')
+    assert tempura_udon_key.startswith('6:')
+    assert targets[udon_key]['parentKey'] is None
+    assert targets[tempura_udon_key]['parentKey'] == udon_key
+    assert targets[udon_key]['description'] == '小麦粉と塩水を混ぜたものを薄く平らに伸ばし一定の厚さに切った料理'
+    assert targets[tempura_udon_key]['description'] == 'てんぷらを載せたうどん'
     assert 38 not in names and 43 not in names
     assert len({row['key'] for row in data['targetCategories']}) == len(targets)
     assert all('id' not in row for row in data['targetCategories'])
