@@ -152,6 +152,8 @@ docker compose --env-file .env -f docker-compose.base.yaml -f docker-compose.dev
 
 ## サーバーで反映する
 
+料理カテゴリの10テーブル追加と、元カテゴリ256件・分類41件の投入は、[カテゴリDB導入手順](docs/カテゴリDB導入.md)を参照する。追加DDLはGitで配布し、Git管理対象外のJSON・チェックサムはSCPで別送する。既存DBの全体初期化は不要。
+
 新規MySQLの6テーブルと初期データの作成には、[DB初期化手順](docs/DB初期化.md)を使用する。
 初期化専用パスワードとDB名の二重確認後、SQL適用・スキーマ検証・DBヘルスチェックを実行する。
 既存テーブルがあるDBは上書きせず停止する。

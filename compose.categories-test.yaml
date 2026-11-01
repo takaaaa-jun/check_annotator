@@ -1,0 +1,36 @@
+# 本番Compose・.envのDB設定から独立した、カテゴリ用の使い捨てMySQL検証。
+name: check-annotator-category-tests
+
+services:
+  mysql:
+    image: ${CATEGORY_TEST_MYSQL_IMAGE:-mysql:8.0.44}
+    command: ["--port=13316", "--bind-address=127.0.0.1", "--mysqlx=OFF"]
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+      MYSQL_DATABASE: check_annotator
+    tmpfs:
+      - /var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h127.0.0.1", "-P13316", "--silent"]
+      interval: 2s
+      timeout: 3s
+      retries: 60
+      start_period: 15s
+
+  tests:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    working_dir: /source
+    volumes:
+      - .:/source:ro
+    # MySQLとネットワークを共有し、接続先は隔離環境内のlocalhostに固定。
+    network_mode: "service:mysql"
+    environment:
+      CATEGORY_TEST_MYSQL_URL: mysql+pymysql://root@127.0.0.1:13316/check_annotator?charset=utf8mb4
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONIOENCODING: utf-8
+    depends_on:
+      mysql:
+        condition: service_healthy
+    command: ["python", "-m", "pytest", "-p", "no:cacheprovider", "tests/test_categories.py", "tests/test_initialize_database.py", "tests/test_categories_mysql.py", "-q"]
