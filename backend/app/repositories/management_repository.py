@@ -77,9 +77,13 @@ class ManagementRepository:
                 total_count=sum(state["count"] for state in state_counts),
                 completed_count=sum(state["count"] for state in state_counts if state["state_name"] == "完了"),
                 pending_comments=pending_counts.get(worker.user_id, 0), state_counts=state_counts))
+        unassigned_groups = self.db.scalar(select(func.count(Group.group_id)).where(Group.user_id.is_(None), Group.deleted_at.is_(None))) or 0
+        unassigned_tasks = self.db.scalar(select(func.count(Task.task_id)).join(Group, Group.group_id == Task.group_id)
+            .join(State, State.state_id == Task.state_id).where(Group.user_id.is_(None), Group.deleted_at.is_(None), Task.deleted_at.is_(None), State.deleted_at.is_(None))) or 0
         return dict(workers=result, total_tasks=sum(row["total_count"] for row in result),
                     completed_tasks=sum(row["completed_count"] for row in result),
-                    pending_comments=sum(row["pending_comments"] for row in result))
+                    pending_comments=sum(row["pending_comments"] for row in result),
+                    unassigned_groups=unassigned_groups, unassigned_tasks=unassigned_tasks)
 
     def comments(self, page, page_size, worker_id=None, unanswered=False, replies_for=None):
         statement, author_role, owner = self._activity()
