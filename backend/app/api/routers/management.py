@@ -7,8 +7,24 @@ from app.api.dependencies import get_authenticated_user_id
 from app.database import get_db
 from app.schemas.management import AdminOverviewResponse, CommentActivityPage
 from app.services.management_service import ManagementService
+from app.schemas.management import AssignmentList, AssignmentRequest
+from app.services.assignment_service import AssignmentService, AssignmentConflict
+from app.core.exceptions import error_response
 
 router = APIRouter(prefix="/api", tags=["management"])
+
+
+@router.get("/admin/assignments", response_model=AssignmentList)
+def assignments(user_id: int = Depends(get_authenticated_user_id), db: Session = Depends(get_db)):
+    return AssignmentService(db).list(user_id)
+
+
+@router.post("/admin/assignments", response_model=AssignmentList)
+def save_assignments(payload: AssignmentRequest, user_id: int = Depends(get_authenticated_user_id), db: Session = Depends(get_db)):
+    try:
+        return AssignmentService(db).save(user_id, payload.assignments)
+    except AssignmentConflict as error:
+        return error_response(409, "ASSIGNMENT_CONFLICT", str(error))
 
 
 @router.get("/admin/overview", response_model=AdminOverviewResponse)

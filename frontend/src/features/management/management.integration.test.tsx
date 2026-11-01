@@ -4,18 +4,19 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ManagementPage } from "./management-page";
 import { getCurrentUser } from "@/src/lib/api/auth";
-import { getAdminOverview, getCommentActivity, type CommentActivity } from "@/src/lib/api/management";
+import { getAdminOverview, getCommentActivity, getAssignments, type CommentActivity } from "@/src/lib/api/management";
 import { createTaskComment, getTaskComments } from "@/src/lib/api/tasks";
 
 const router = vi.hoisted(() => ({ replace: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 vi.mock("@/src/lib/api/auth", () => ({ getCurrentUser: vi.fn() }));
-vi.mock("@/src/lib/api/management", () => ({ getAdminOverview: vi.fn(), getCommentActivity: vi.fn() }));
+vi.mock("@/src/lib/api/management", () => ({ getAdminOverview: vi.fn(), getCommentActivity: vi.fn(), getAssignments: vi.fn(), saveAssignments: vi.fn() }));
 vi.mock("@/src/lib/api/tasks", () => ({ getTaskComments: vi.fn(), createTaskComment: vi.fn() }));
 const pagination = { page: 1, page_size: 20, total: 1, total_pages: 1 };
 const comment: CommentActivity = { comment_id: 21, task_id: 5, image_id: 105, group_id: 2, group_name: "00101-00200", worker_id: 6, worker_name: "sato", user_id: 6, user_name: "sato", author_role: "worker", parent_id: null, parent_content: null, content: "パンのカテゴリについて質問です", created_at: "2026-11-02T00:00:00Z", updated_at: "2026-11-02T00:00:00Z", has_admin_reply: false };
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(getAssignments).mockResolvedValue({ groups: [] });
   vi.mocked(getCurrentUser).mockResolvedValue({ user_id: 4, user_name: "admin-user", role_id: 2, role_name: "admin", login_at: null });
   vi.mocked(getAdminOverview).mockResolvedValue({ total_tasks: 100, completed_tasks: 40, pending_comments: 1, workers: [{ user_id: 6, user_name: "sato", group_count: 1, total_count: 100, completed_count: 40, pending_comments: 1, state_counts: [{ state_id: 2, state_name: "完了", count: 40 }] }] });
   vi.mocked(getCommentActivity).mockResolvedValue({ comments: [comment], pagination });
