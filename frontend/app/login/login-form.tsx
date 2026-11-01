@@ -22,7 +22,7 @@ export function LoginForm() {
     getCurrentUser()
       .then((user) => {
         if (active) {
-          router.replace(`/mypage/${user.user_id}/groups`);
+          router.replace(user.role_name === "admin" ? "/admin" : `/mypage/${user.user_id}/groups`);
         }
       })
       .catch((reason: unknown) => {
@@ -53,7 +53,7 @@ export function LoginForm() {
     setError(null);
     try {
       const result = await login({ user_name: userName, password });
-      router.replace(`/mypage/${result.user.user_id}/groups`);
+      router.replace(result.user.role_name === "admin" ? "/admin" : `/mypage/${result.user.user_id}/groups`);
     } catch (reason: unknown) {
       setPassword("");
       setError(reason instanceof Error ? reason.message : "ログインに失敗しました");

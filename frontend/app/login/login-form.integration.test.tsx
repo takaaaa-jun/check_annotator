@@ -53,6 +53,16 @@ afterEach(() => {
 });
 
 describe("LoginForm integration", () => {
+  it("管理者ログイン後は管理者画面へ移動する", async () => {
+    loginMock.mockResolvedValue({ user: { user_id: 4, user_name: "admin-user", role_name: "admin" } });
+    render(<LoginForm />);
+    const user = userEvent.setup();
+    await waitFor(() => expect(screen.getByRole("button", { name: "ログイン" })).toBeEnabled());
+    await user.type(screen.getByLabelText("ユーザー名"), "admin-user");
+    await user.type(screen.getByLabelText("パスワード"), "test1");
+    await user.click(screen.getByRole("button", { name: "ログイン" }));
+    await waitFor(() => expect(replaceMock).toHaveBeenCalledWith("/admin"));
+  });
   it("ログイン成功後に本人のグループ一覧へ遷移する", async () => {
     loginMock.mockResolvedValue({
       user: {

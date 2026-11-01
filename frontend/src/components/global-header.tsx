@@ -62,6 +62,7 @@ export function GlobalHeader() {
 
         {protectedPage && (
           <div className="flex items-center gap-3">
+            {currentUser && <Link href={currentUser.role_name === "admin" ? "/admin" : "/replies"} className="rounded-lg px-3 py-2 text-sm font-bold text-blue-800 hover:bg-blue-50">{currentUser.role_name === "admin" ? "管理者画面" : "返信一覧"}</Link>}
             <Link href="/categories" className="rounded-lg px-3 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-50">
               カテゴリ確認
             </Link>
