@@ -1,0 +1,5 @@
+data/categories/*.json text eol=lf
+data/categories/*.sha256 text eol=lf
+data/categories/*.txt text eol=lf
+data/categories/*.tsv text eol=lf
+sql/006_create_categories.sql text eol=lf

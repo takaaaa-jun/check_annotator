@@ -13,3 +13,10 @@ frontend/.next/
 backend/**/__pycache__/
 backend/**/*.py[cod]
 backend/.pytest_cache/
+.venv-categories/
+scripts/__pycache__/
+tests/__pycache__/
+.pytest_cache/
+imports/categories/
+.tmp-category-mysql/
+data/*
