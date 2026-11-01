@@ -248,7 +248,20 @@ export function GroupsPageClient({
               >
                 <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
                   <h2 className="text-xl font-semibold">
-                    {group.group_name}
+                    <Link
+                      href={`/mypage/${userId}/groups/${group.group_id}`}
+                      onClick={(event) => {
+                        if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+                        window.open(
+                          `/coco-annotator/?${new URLSearchParams({ search: group.group_name })}#/dataset/2?${new URLSearchParams({ file_name__icontains: group.group_name })}`,
+                          "coco-annotator",
+                        );
+                      }}
+                      className="text-blue-700 underline decoration-blue-300 underline-offset-4 hover:text-blue-900 focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-700"
+                      aria-label={`${group.group_name}のグループ詳細とCOCO Annotatorの検索結果を開く（COCO Annotatorのタブを再利用）`}
+                    >
+                      {group.group_name}
+                    </Link>
                   </h2>
 
                   <Link

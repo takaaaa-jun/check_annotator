@@ -135,6 +135,8 @@ export function GroupTasksPageClient({
   const [taskUpdateErrors, setTaskUpdateErrors] =
     useState<Record<number, string>>({});
 
+  const [openCategoriesTaskId, setOpenCategoriesTaskId] = useState<number | null>(null);
+
   const [openCommentsTaskId, setOpenCommentsTaskId] =
     useState<number | null>(null);
 
@@ -299,6 +301,7 @@ export function GroupTasksPageClient({
 
         setTaskData(result);
         setActiveTaskId(null);
+        setOpenCategoriesTaskId(null);
         setOpenCommentsTaskId(null);
         setCommentComposer(null);
         setTaskUpdateErrors({});
@@ -371,9 +374,13 @@ export function GroupTasksPageClient({
     );
 
     if (
-      currentTask === undefined ||
-      currentTask.state_id === nextStateId
+      currentTask === undefined
     ) {
+      return;
+    }
+
+    if (currentTask.state_id === nextStateId) {
+      if (nextStateName === "完了") highlightTaskAndAdvance(taskId);
       return;
     }
 
@@ -444,6 +451,9 @@ export function GroupTasksPageClient({
   }
 
   function highlightTaskAndAdvance(taskId: number) {
+    setOpenCategoriesTaskId((current) => current === taskId ? null : current);
+    setOpenCommentsTaskId((current) => current === taskId ? null : current);
+    setCommentComposer((current) => current?.taskId === taskId ? null : current);
     setActiveTaskId(taskId);
 
     requestAnimationFrame(() => {
@@ -626,6 +636,10 @@ export function GroupTasksPageClient({
         loading={tasksLoading}
         activeTaskId={activeTaskId}
         openCommentsTaskId={openCommentsTaskId}
+        openCategoriesTaskId={openCategoriesTaskId}
+        onToggleCategories={(taskId) => {
+          setOpenCategoriesTaskId((current) => current === taskId ? null : taskId);
+        }}
         commentComposer={commentComposer}
         updatingTaskIds={updatingTaskIds}
         taskUpdateErrors={taskUpdateErrors}

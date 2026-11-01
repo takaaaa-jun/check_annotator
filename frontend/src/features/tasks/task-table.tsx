@@ -14,6 +14,7 @@ import type {
 } from "../../lib/api/types";
 import { formatDateTime } from "../../lib/format/date-time";
 import { TaskCommentsPanel } from "./task-comments-panel";
+import { CategoryWorkbench } from "../categories/category-workbench";
 import {
   TaskStateBadge,
   TaskStateControls,
@@ -31,6 +32,7 @@ type TaskTableProps = {
   loading: boolean;
   activeTaskId: number | null;
   openCommentsTaskId: number | null;
+  openCategoriesTaskId: number | null;
   commentComposer: CommentComposer | null;
   updatingTaskIds: Set<number>;
   taskUpdateErrors: Record<number, string>;
@@ -44,6 +46,7 @@ type TaskTableProps = {
     state: StateCount,
   ) => void;
   onToggleComments: (taskId: number) => void;
+  onToggleCategories: (taskId: number) => void;
   onUnauthorized: () => void;
   onCommentCompleted: (taskId: number) => void;
 };
@@ -54,6 +57,7 @@ export function TaskTable({
   loading,
   activeTaskId,
   openCommentsTaskId,
+  openCategoriesTaskId,
   commentComposer,
   updatingTaskIds,
   taskUpdateErrors,
@@ -61,6 +65,7 @@ export function TaskTable({
   onTaskRowRef,
   onStateSelect,
   onToggleComments,
+  onToggleCategories,
   onUnauthorized,
   onCommentCompleted,
 }: TaskTableProps) {
@@ -133,6 +138,16 @@ export function TaskTable({
                   >
                     <td className="break-words border-b border-slate-100 px-2 py-4 text-center text-lg font-extrabold text-slate-950 xl:px-4">
                       {task.image_id}
+                      <button
+                        type="button"
+                        aria-expanded={openCategoriesTaskId === task.task_id}
+                        aria-controls={`task-categories-${task.task_id}`}
+                        onClick={() => onToggleCategories(task.task_id)}
+                        className="mt-1 block w-full text-xs font-semibold text-blue-800 underline underline-offset-2"
+                        aria-label={`画像${task.image_id}のカテゴリを確認`}
+                      >
+                        {openCategoriesTaskId === task.task_id ? "カテゴリ確認を閉じる" : "カテゴリ確認"}
+                      </button>
                     </td>
                     <td className="border-b border-slate-100 px-2 py-4 text-center xl:px-4">
                       <TaskStateBadge stateName={task.state_name} />
@@ -142,6 +157,15 @@ export function TaskTable({
                     </td>
                     <td className="border-b border-slate-100 px-2 py-4 text-center xl:px-4">
                       <div className="flex w-full flex-nowrap items-center justify-center gap-0.5">
+                        <a
+                          href={`/coco-annotator/?image=${task.image_id}#/annotate/${task.image_id}`}
+                          target="coco-annotator"
+                          rel="opener"
+                          aria-label={`画像${task.image_id}をCOCO Annotatorで編集（COCO Annotatorのタブを再利用）`}
+                          className="inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-lg border border-blue-400 bg-blue-50 px-2 text-sm font-bold text-blue-800 hover:bg-blue-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
+                        >
+                          画像を編集
+                        </a>
                         <TaskStateControls
                           states={stateCounts}
                           currentStateId={task.state_id}
@@ -175,6 +199,13 @@ export function TaskTable({
                     </td>
                   </tr>
 
+                  {openCategoriesTaskId === task.task_id && (
+                    <tr id={`task-categories-${task.task_id}`}>
+                      <td colSpan={4} className="p-0">
+                        <CategoryWorkbench imageId={task.image_id} embedded />
+                      </td>
+                    </tr>
+                  )}
                   {openCommentsTaskId === task.task_id && (
                     <tr id={`task-comments-${task.task_id}`}>
                       <td colSpan={4} className="p-0">
