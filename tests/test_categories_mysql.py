@@ -100,8 +100,8 @@ def test_mysql_full_import_and_existing_data_preservation(mysql, tmp_path, route
     assert result.returncode == 0, result.stdout + result.stderr
     categories_before = snapshot(engine, module.metadata.tables)
     assert len(categories_before["source_categories"][1]) == 256
-    assert len(categories_before["food_categories"][1]) == 41
-    assert len(categories_before["category_replacement_mappings"][1]) == 41
+    assert len(categories_before["food_categories"][1]) == 42
+    assert len(categories_before["category_replacement_mappings"][1]) == 42
     repeated = run_cli(url, "--apply")
     assert repeated.returncode == 0, repeated.stdout + repeated.stderr
     assert snapshot(engine, module.metadata.tables) == categories_before
@@ -133,7 +133,7 @@ def test_mysql_full_import_and_existing_data_preservation(mysql, tmp_path, route
     assert extension.returncode == 0, extension.stdout + extension.stderr
     after = snapshot(engine, module.metadata.tables)
     assert len(after["source_categories"][1]) == 256
-    assert len(after["food_categories"][1]) == len(after["category_replacement_mappings"][1]) == 42
+    assert len(after["food_categories"][1]) == len(after["category_replacement_mappings"][1]) == 43
     assert snapshot(engine, BASE_TABLES) == base_before
 
 
@@ -171,7 +171,7 @@ def test_mysql_database_constraints(mysql):
         connection.execute(mapping.update().where(mapping.c.mapping_id == first["mapping_id"]).values(
             deleted_at=first["created_at"]))
         module.import_data(connection, json.loads((ROOT / "data/categories/categories.json").read_text(encoding="utf-8")))
-        assert connection.execute(text("SELECT COUNT(*) FROM category_replacement_mappings")).scalar_one() == 42
+        assert connection.execute(text("SELECT COUNT(*) FROM category_replacement_mappings")).scalar_one() == 43
 
 
 def test_mysql_lock_prevents_concurrent_import(mysql):
@@ -192,3 +192,27 @@ def test_mysql_lock_prevents_concurrent_import(mysql):
         assert connection.execute(text("SELECT GET_LOCK('check_annotator.categories', 0)")).scalar_one() == 1
         connection.execute(text("SELECT RELEASE_LOCK('check_annotator.categories')"))
         connection.commit()
+
+
+def test_mysql_dashimaki_patch_preserves_existing_data(mysql, tmp_path):
+    engine, url = mysql
+    base_before = snapshot(engine, BASE_TABLES)
+    data = json.loads((ROOT / 'data/categories/categories.json').read_text(encoding='utf-8'))
+    data['classifications'] = [row for row in data['classifications'] if row['source_id'] != 67]
+    path = tmp_path / 'before-dashimaki.json'
+    path.write_text(json.dumps(data, ensure_ascii=False), encoding='utf-8')
+    initial = run_cli(url, '--data', str(path), '--apply', '--create-schema')
+    assert initial.returncode == 0, initial.stdout + initial.stderr
+    before = snapshot(engine, module.metadata.tables)
+    environment = os.environ | {'DATABASE_URL': url, 'PYTHONIOENCODING': 'utf-8'}
+    command = [sys.executable, str(ROOT / 'scripts/add_dashimaki_category.py')]
+    preview = subprocess.run(command, env=environment, capture_output=True, text=True, encoding='utf-8', timeout=60)
+    assert preview.returncode == 0, preview.stdout + preview.stderr
+    assert snapshot(engine, module.metadata.tables) == before
+    for _ in range(2):
+        result = subprocess.run(command + ['--apply'], env=environment, capture_output=True, text=True, encoding='utf-8', timeout=60)
+        assert result.returncode == 0, result.stdout + result.stderr
+    after = snapshot(engine, module.metadata.tables)
+    assert len(after['food_categories'][1]) == len(after['category_replacement_mappings'][1]) == 42
+    assert after['source_categories'] == before['source_categories']
+    assert snapshot(engine, BASE_TABLES) == base_before

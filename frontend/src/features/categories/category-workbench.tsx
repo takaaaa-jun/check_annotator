@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { APP_BASE_PATH } from "@/src/lib/api/client";
 import { CategoryConflict, demoAdapter, liveAdapter, readReview } from "./adapter";
-import { parseCatalog, suggestedCategory } from "./catalog";
+import { candidateCategories, parseCatalog, suggestedCategory } from "./catalog";
 import { categoryChanges, categoryName, type ReviewSnapshot } from "./changes";
 import { demoCatalog } from "./fixtures";
 import type { Catalog, CategoryAdapter, ImageReview, ReviewBox } from "./types";
@@ -24,6 +24,8 @@ export function CategoryWorkbench({ imageId, embedded = false }: { imageId?: num
   const [imageInput, setImageInput] = useState("4001");
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [confirmation, setConfirmation] = useState<ReviewBox | null>(null);
+  const [confirmationTargetId, setConfirmationTargetId] = useState<number | null>(null);
+  const [choices, setChoices] = useState<Record<number, { targetId: number; revision: string; catalogVersion: string }>>({});
   const snapshot = useRef<ReviewSnapshot | null>(null);
   const refresh = useRef<() => void>(() => {});
   const [busy, setBusy] = useState(true);
@@ -40,7 +42,7 @@ export function CategoryWorkbench({ imageId, embedded = false }: { imageId?: num
     const initialId = imageId ?? (Number(new URLSearchParams(window.location.search).get("imageId")) || 4001);
     Promise.resolve().then(() => {
       if (requestEpoch !== counter.current) return null;
-      setCatalog(null); setImage(null); setConfirmation(null); setSelectedId(null); setError(""); setNotices([]); setBusy(true);
+      setCatalog(null); setImage(null); setConfirmation(null); setChoices({}); setSelectedId(null); setError(""); setNotices([]); setBusy(true);
       setImageInput(String(mode === "demo" ? 4001 : initialId));
       return readReview(adapter, initialId);
     })
@@ -79,7 +81,7 @@ export function CategoryWorkbench({ imageId, embedded = false }: { imageId?: num
       if (requestEpoch !== epoch.current) return;
       const next = { catalog: nextCatalog, image: nextImage };
       const changes = categoryChanges(snapshot.current, next);
-      if (snapshot.current?.image.imageId !== nextImage.imageId || snapshot.current?.image.datasetId !== nextImage.datasetId) setNotices([]);
+      if (snapshot.current?.image.imageId !== nextImage.imageId || snapshot.current?.image.datasetId !== nextImage.datasetId) { setNotices([]); setChoices({}); }
       if (changes.length) setNotices((previous) => [...previous, ...changes].slice(-20));
       snapshot.current = next;
       setCatalogWarning(warning);
@@ -89,7 +91,7 @@ export function CategoryWorkbench({ imageId, embedded = false }: { imageId?: num
   }
   async function replace() {
     if (!catalog || !image || !confirmation || operation.current) return;
-    const target = suggestedCategory(catalog, confirmation);
+    const target = candidateCategories(catalog, confirmation).find((category) => category.id === confirmationTargetId);
     if (!target || target.id === confirmation.categoryId) return;
     const requestEpoch = epoch.current;
     operation.current = true; setBusy(true); setError("");
@@ -98,6 +100,7 @@ export function CategoryWorkbench({ imageId, embedded = false }: { imageId?: num
         datasetId: image.datasetId, imageId: image.imageId, annotationId: confirmation.id,
         expectedCategoryId: confirmation.categoryId, expectedRevision: confirmation.revision,
         targetCategoryId: target.id, catalogVersion: catalog.version,
+        ...(catalog.mappings.find((mapping) => mapping.sourceCategoryId === confirmation.originalCategoryId)?.requiresChoice ? { choiceConfirmed: true } : {}),
       });
       if (requestEpoch !== epoch.current) return;
       const nextImage = { ...image, boxes: image.boxes.map((box) => box.id === updated.id ? updated : box) };
@@ -128,7 +131,16 @@ export function CategoryWorkbench({ imageId, embedded = false }: { imageId?: num
   const selected = image?.boxes.find((box) => box.id === selectedId);
   const originalName = (box: ReviewBox) => catalog?.sourceCategories.find((c) => c.id === box.originalCategoryId)?.name ?? (image ? categoryName(image, catalog, box.originalCategoryId) : `カテゴリ #${box.originalCategoryId}`);
   const currentName = (box: ReviewBox) => image ? categoryName(image, catalog, box.categoryId) : `カテゴリ #${box.categoryId}`;
-  const confirmedTarget = catalog && confirmation ? suggestedCategory(catalog, confirmation) : undefined;
+  const confirmedTarget = catalog && confirmation ? candidateCategories(catalog, confirmation).find((category) => category.id === confirmationTargetId) : undefined;
+  const targetFor = (box: ReviewBox) => {
+    if (!catalog) return undefined;
+    if (box.categoryId !== box.originalCategoryId) return candidateCategories(catalog, box).find((category) => category.id === box.categoryId);
+    const choice = choices[box.id];
+    if (choice?.revision === box.revision && choice.catalogVersion === catalog.version) {
+      return candidateCategories(catalog, box).find((category) => category.id === choice.targetId);
+    }
+    return suggestedCategory(catalog, box);
+  };
 
   const Container = embedded ? "section" : "main";
   return (
@@ -180,10 +192,10 @@ export function CategoryWorkbench({ imageId, embedded = false }: { imageId?: num
       {image && <section className="overflow-x-auto rounded-xl border bg-white p-5">
         <h2 className="mb-4 text-lg font-bold">元カテゴリと置換候補（ボックス単位）</h2>
         <table className="w-full text-left"><thead><tr>{["ボックス", "元カテゴリ", "現在のカテゴリ", "対応する新カテゴリ", "操作"].map((heading) => <th key={heading} className="border-b p-3">{heading}</th>)}</tr></thead>
-          <tbody>{image.boxes.map((box) => { const target = catalog ? suggestedCategory(catalog, box) : undefined; return <tr key={box.id} className={box.id === selectedId ? "bg-blue-50" : ""}>
+          <tbody>{image.boxes.map((box) => { const target = targetFor(box); const candidates = catalog ? candidateCategories(catalog, box) : []; const requiresChoice = catalog?.mappings.find((mapping) => mapping.sourceCategoryId === box.originalCategoryId)?.requiresChoice; return <tr key={box.id} className={box.id === selectedId ? "bg-blue-50" : ""}>
             <td className="border-b p-3"><button className="font-bold text-blue-800 underline" onClick={() => setSelectedId(box.id)}>#{box.id}</button><p className="text-xs text-slate-500">{box.bbox.join(", ")}</p></td>
-            <td className="border-b p-3">{originalName(box)}</td><td className="border-b p-3">{currentName(box)}</td><td className="border-b p-3">{target?.name ?? "対応未設定"}</td>
-            <td className="border-b p-3"><button className={button} disabled={busy || box.isBox === false || !target || box.categoryId !== box.originalCategoryId || target.id === box.categoryId} onClick={() => { setSelectedId(box.id); setConfirmation(structuredClone(box)); }}>{box.categoryId !== box.originalCategoryId || target?.id === box.categoryId ? "置換済み" : "置き換えを確認"}</button></td>
+            <td className="border-b p-3">{originalName(box)}</td><td className="border-b p-3">{currentName(box)}</td><td className="border-b p-3">{requiresChoice ? <label className="grid gap-2"><span className="text-sm">内容を見て置換先を選択</span><select aria-label={`ボックス${box.id}の置換先`} className={field} value={target?.id ?? ""} disabled={busy || box.categoryId !== box.originalCategoryId || box.isBox === false} onChange={(event) => { if (catalog) setChoices((previous) => ({ ...previous, [box.id]: { targetId: Number(event.target.value), revision: box.revision, catalogVersion: catalog.version } })); }}><option value="">置換先を選択してください</option>{candidates.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.name}</option>)}</select></label> : target?.name ?? "対応未設定"}</td>
+            <td className="border-b p-3"><button className={button} disabled={busy || box.isBox === false || !target || box.categoryId !== box.originalCategoryId || target.id === box.categoryId} onClick={() => { if (target) { setSelectedId(box.id); setConfirmationTargetId(target.id); setConfirmation(structuredClone(box)); } }}>{box.categoryId !== box.originalCategoryId || target?.id === box.categoryId ? "置換済み" : "置き換えを確認"}</button></td>
           </tr>; })}</tbody>
         </table>
         {image.boxes.length === 0 && <p className="py-4">付与済みのボックスはありません。新規付与はCOCO Annotatorで行ってください。</p>}

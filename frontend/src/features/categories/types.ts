@@ -4,7 +4,7 @@ export type Catalog = {
   datasetId: number;
   sourceCategories: Category[];
   targetCategories: Category[];
-  mappings: { sourceCategoryId: number; targetCategoryId: number }[];
+  mappings: { sourceCategoryId: number; targetCategoryId: number; candidateTargetCategoryIds?: number[]; requiresChoice?: boolean }[];
 };
 export type ReviewBox = {
   id: number;
@@ -32,6 +32,7 @@ export type Replacement = {
   expectedRevision: string;
   targetCategoryId: number;
   catalogVersion: string;
+  choiceConfirmed?: boolean;
 };
 export interface CategoryAdapter {
   catalog(): Promise<Catalog>;

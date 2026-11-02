@@ -20,7 +20,8 @@ export function demoAdapter(catalog: Catalog = demoCatalog): CategoryAdapter {
       const box = image.boxes.find((b) => b.id === request.annotationId);
       if (request.datasetId !== image.datasetId || request.imageId !== image.imageId || request.catalogVersion !== catalog.version || !box || box.categoryId !== request.expectedCategoryId || box.revision !== request.expectedRevision) throw new CategoryConflict("表示後にデータが更新されました。再読み込みしてください。");
       const mapping = catalog.mappings.find((m) => m.sourceCategoryId === box.originalCategoryId);
-      if (mapping?.targetCategoryId !== request.targetCategoryId || !catalog.targetCategories.some((c) => c.id === request.targetCategoryId)) throw new Error("対応表と置換先が一致しません。");
+      if (!mapping || !(mapping.candidateTargetCategoryIds ?? [mapping.targetCategoryId]).includes(request.targetCategoryId) || !catalog.targetCategories.some((c) => c.id === request.targetCategoryId)) throw new Error("対応表と置換先が一致しません。");
+      if (mapping.requiresChoice && request.choiceConfirmed !== true) throw new Error("置換先を選択してください。");
       if (box.categoryId !== box.originalCategoryId) throw new Error("元カテゴリから変更済みです。");
       box.categoryId = request.targetCategoryId;
       box.revision = `demo-${++revision}`;
