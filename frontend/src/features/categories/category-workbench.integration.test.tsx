@@ -8,6 +8,45 @@ import { demoCatalog, demoImage } from "./fixtures";
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 describe("カテゴリ確認画面", () => {
+  it.each([101, 104])("omeletは明示選択と確認後だけ候補%sへ置換する", async (targetId) => {
+    const current = structuredClone(demoImage);
+    const multi = structuredClone(demoCatalog);
+    multi.sourceCategories[0].name = "omelet";
+    multi.targetCategories[0].name = "オムレツ";
+    multi.targetCategories.push({ id: 104, name: "だし巻き卵", aliases: [] });
+    multi.mappings[0] = { sourceCategoryId: 1, targetCategoryId: 101, candidateTargetCategoryIds: [101, 104], requiresChoice: true };
+    const fetch = vi.fn().mockImplementation(async (url: string, init?: RequestInit) => {
+      if (init?.method === "PUT") {
+        const payload = JSON.parse(String(init.body));
+        expect(payload.choiceConfirmed).toBe(true);
+        expect(payload.targetCategoryId).toBe(targetId);
+        current.boxes[0] = { ...current.boxes[0], categoryId: targetId, revision: "saved-1" };
+        return { ok: true, json: async () => structuredClone(current.boxes[0]) };
+      }
+      return { ok: true, json: async () => url.endsWith("/catalog") ? multi : structuredClone(current) };
+    });
+    vi.stubGlobal("fetch", fetch);
+    const user = userEvent.setup();
+    render(<CategoryWorkbench imageId={4001} embedded />);
+    const row = (await screen.findByRole("button", { name: "#90001" })).closest("tr")!;
+    const other = screen.getByRole("button", { name: "#90002" }).closest("tr")!;
+    expect(within(row).getByRole("button", { name: "置き換えを確認" })).toBeDisabled();
+    const select = within(row).getByRole("combobox", { name: "ボックス90001の置換先" });
+    expect(select).toHaveValue("");
+    await user.selectOptions(select, String(targetId));
+    await user.click(within(row).getByRole("button", { name: "置き換えを確認" }));
+    expect(screen.getByRole("alertdialog")).toHaveTextContent(targetId === 101 ? "オムレツ" : "だし巻き卵");
+    expect(fetch.mock.calls.some((call) => call[1]?.method === "PUT")).toBe(false);
+    await user.click(screen.getByRole("button", { name: "キャンセル" }));
+    expect(fetch.mock.calls.some((call) => call[1]?.method === "PUT")).toBe(false);
+    await user.click(within(row).getByRole("button", { name: "置き換えを確認" }));
+    await user.click(screen.getByRole("button", { name: "この1件を置き換える" }));
+    await waitFor(() => expect(within(row).getByRole("button", { name: "置換済み" })).toBeDisabled());
+    expect(within(row).getByRole("combobox")).toHaveValue(String(targetId));
+    expect(within(other).getByRole("combobox")).toHaveValue("");
+    expect(within(other).getByRole("button", { name: "置き換えを確認" })).toBeDisabled();
+    expect(fetch.mock.calls.filter((call) => call[1]?.method === "PUT")).toHaveLength(1);
+  });
   it("行内表示は指定された画像IDの実データを参照し、画像切り替えや仮データの操作を出さない", async () => {
     const fetch = vi.fn().mockImplementation(async (url: string) => ({ ok: true, json: async () => url.endsWith("/catalog") ? demoCatalog : { ...demoImage, imageId: 4050 } }));
     vi.stubGlobal("fetch", fetch);

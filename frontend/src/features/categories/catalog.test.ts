@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CategoryConflict, demoAdapter, editorUrl, liveAdapter } from "./adapter";
-import { parseCatalog, searchCategories } from "./catalog";
+import { candidateCategories, parseCatalog, searchCategories, suggestedCategory } from "./catalog";
 import { demoCatalog } from "./fixtures";
 
 afterEach(() => vi.unstubAllGlobals());
@@ -11,6 +11,29 @@ it("COCOの未ログイン応答を日本語で説明する", async () => {
 });
 
 describe("カテゴリ対応表", () => {
+  it("複数候補は保存できるが、先頭候補を自動選択しない", async () => {
+    const catalog = parseCatalog({ ...demoCatalog, mappings: [{ sourceCategoryId: 1, targetCategoryId: 101,
+      candidateTargetCategoryIds: [101, 102], requiresChoice: true }] });
+    const adapter = demoAdapter(catalog);
+    const box = (await adapter.image(4001)).boxes[0];
+    expect(candidateCategories(catalog, box).map((category) => category.id)).toEqual([101, 102]);
+    expect(suggestedCategory(catalog, box)).toBeUndefined();
+    const request = { datasetId: 2, imageId: 4001, annotationId: box.id, expectedCategoryId: 1,
+      expectedRevision: box.revision, targetCategoryId: 102, catalogVersion: catalog.version };
+    await expect(adapter.replace(request)).rejects.toThrow("選択");
+    await adapter.replace({ ...request, choiceConfirmed: true });
+    expect((await adapter.image(4001)).boxes[0].categoryId).toBe(102);
+  });
+  it("不正な候補集合・選択フラグを拒否する", () => {
+    for (const extra of [
+      { candidateTargetCategoryIds: [101, 102] },
+      { candidateTargetCategoryIds: [101, 999], requiresChoice: true },
+      { candidateTargetCategoryIds: [101, 101], requiresChoice: true },
+      { candidateTargetCategoryIds: [], requiresChoice: true },
+      { candidateTargetCategoryIds: [102], requiresChoice: true },
+      { candidateTargetCategoryIds: [101], requiresChoice: "true" },
+    ]) expect(() => parseCatalog({ ...demoCatalog, mappings: [{ sourceCategoryId: 1, targetCategoryId: 101, ...extra }] })).toThrow();
+  });
   it("名前・別名・全角の数字を検索できる", () => {
     expect(searchCategories(demoCatalog.targetCategories, "ＢＲＥＡＤ").map((c) => c.id)).toEqual([101]);
     expect(searchCategories(demoCatalog.targetCategories, "テスト １").map((c) => c.id)).toEqual([101]);

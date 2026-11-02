@@ -38,7 +38,7 @@ def count(connection, table):
 
 
 def test_original_ids_and_partial_classification(data):
-    assert module.validate(data) == dict(source_categories=256, food_categories=41, mappings=41, unmapped=215)
+    assert module.validate(data) == dict(source_categories=256, food_categories=42, mappings=42, unmapped=214)
     names = {row["id"]: row["name"] for row in data["source_categories"]}
     assert names[19] == "sandwiches"
     assert names[20] == "udon noodle"
@@ -70,7 +70,7 @@ def test_import_is_repeatable_and_deduplicates_masters(engine, data):
         module.import_data(connection, data)
         assert before == {table.name: count(connection, table) for table in module.metadata.sorted_tables}
         assert before["source_categories"] == 256
-        assert before["category_replacement_mappings"] == 41
+        assert before["category_replacement_mappings"] == 42
         assert connection.scalar(select(func.count()).select_from(module.masters[5]).where(
             module.masters[5].c.name == "ピラフ")) == 1
         assert connection.scalar(select(func.count()).select_from(module.masters[5]).where(
@@ -123,7 +123,7 @@ def test_soft_deleted_mapping_can_be_replaced(engine, data):
         row = connection.execute(select(table)).mappings().first()
         connection.execute(table.update().where(table.c.mapping_id == row["mapping_id"]).values(deleted_at=row["created_at"]))
         module.import_data(connection, data)
-        assert count(connection, table) == 42
+        assert count(connection, table) == 43
 
 
 def test_generated_sql_matches_metadata():

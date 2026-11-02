@@ -33,16 +33,31 @@ export function parseCatalog(value: unknown): Catalog {
     const mapping = record(item);
     const sourceCategoryId = positiveId(mapping.sourceCategoryId);
     const targetCategoryId = positiveId(mapping.targetCategoryId);
+    const rawCandidates = mapping.candidateTargetCategoryIds ?? [targetCategoryId];
+    if (!Array.isArray(rawCandidates) || !rawCandidates.length) throw new Error("置換候補が空です。");
+    const candidateTargetCategoryIds = rawCandidates.map(positiveId);
+    if (new Set(candidateTargetCategoryIds).size !== candidateTargetCategoryIds.length || !candidateTargetCategoryIds.includes(targetCategoryId)
+      || candidateTargetCategoryIds.some((id) => !targetCategories.some((c) => c.id === id))) throw new Error("置換候補のIDが不正です。");
+    if (mapping.requiresChoice !== undefined && typeof mapping.requiresChoice !== "boolean") throw new Error("候補選択フラグが不正です。");
+    if (candidateTargetCategoryIds.length > 1 && mapping.requiresChoice !== true) throw new Error("複数の置換候補は選択が必要です。");
     if (!sourceCategories.some((c) => c.id === sourceCategoryId) || !targetCategories.some((c) => c.id === targetCategoryId)) throw new Error("対応表に存在しないカテゴリIDがあります。");
     if (mapped.has(sourceCategoryId)) throw new Error("一つの元カテゴリに複数の置換先は指定できません。");
     mapped.add(sourceCategoryId);
-    return { sourceCategoryId, targetCategoryId };
+    return mapping.candidateTargetCategoryIds !== undefined || mapping.requiresChoice !== undefined
+      ? { sourceCategoryId, targetCategoryId, candidateTargetCategoryIds, requiresChoice: mapping.requiresChoice === true }
+      : { sourceCategoryId, targetCategoryId };
   });
   return { version: data.version.trim(), datasetId: positiveId(data.datasetId), sourceCategories, targetCategories, mappings };
 }
 export function suggestedCategory(catalog: Catalog, box: ReviewBox): Category | undefined {
   const mapping = catalog.mappings.find((m) => m.sourceCategoryId === box.originalCategoryId);
+  if (mapping?.requiresChoice) return undefined;
   return catalog.targetCategories.find((c) => c.id === mapping?.targetCategoryId);
+}
+export function candidateCategories(catalog: Catalog, box: ReviewBox): Category[] {
+  const mapping = catalog.mappings.find((m) => m.sourceCategoryId === box.originalCategoryId);
+  const ids = mapping ? mapping.candidateTargetCategoryIds ?? [mapping.targetCategoryId] : [];
+  return ids.map((id) => catalog.targetCategories.find((category) => category.id === id)).filter((category): category is Category => category !== undefined);
 }
 export function searchCategories(categories: Category[], query: string): Category[] {
   const terms = query.normalize("NFKC").toLocaleLowerCase().trim().split(/\s+/).filter(Boolean);
