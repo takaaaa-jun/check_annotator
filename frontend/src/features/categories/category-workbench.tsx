@@ -151,7 +151,7 @@ export function CategoryWorkbench({ imageId, embedded = false }: { imageId?: num
         <label className="flex items-center gap-2">データ元<select aria-label="データ元" className={field} value={mode} disabled={busy} onChange={(event) => { setImage(null); setCatalog(null); setConfirmation(null); setBusy(true); setMode(event.target.value as "demo" | "live"); }}><option value="demo">テスト（仮データ）</option><option value="live">COCO Annotator（実データ）</option></select></label>
       </div>
       <div className={`rounded-xl border p-4 ${mode === "demo" ? "border-amber-300 bg-amber-50" : "border-blue-300 bg-blue-50"}`}>
-        {mode === "demo" ? "テストモード：テスト1〜3と仮のボックスを使用します。操作はこの画面内だけで有効で、再読み込みすると元に戻ります。実画像・実DBは変更しません。" : "実データモード：COCO Annotatorへのログインと対象データセットの権限が必要です。更新前にCOCO側の画像編集を保存して閉じてください。接続エラー時にテストデータへ切り替わることはありません。"}
+        {mode === "demo" ? "テストモード：テスト1〜3と仮のボックスを使用します。操作はこの画面内だけで有効で、再読み込みすると元に戻ります。実画像・実DBは変更しません。" : "実データモード：COCO Annotatorへのログインと対象データセットの権限が必要です。同じ画像が他の操作で更新された場合は、編集内容を確認して再読み込みしてください。接続エラー時にテストデータへ切り替わることはありません。"}
       </div>
       <section className="flex flex-wrap items-end gap-4 rounded-xl border bg-white p-5" aria-label="読み込み設定">
         <label className="grid gap-2">画像ID<input aria-label="画像ID" type="number" min="1" className={field} value={imageInput} disabled={busy || mode === "demo"} onChange={(event) => setImageInput(event.target.value)} /></label>
