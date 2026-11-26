@@ -39,7 +39,7 @@ def test_export_uses_target_level_and_not_internal_ids(catalog_db):
     with catalog_db.connect() as connection:
         data = exporter.export_blueprint(connection, 'original-food-256-v1', 2)
     assert len(data['sourceCategories']) == 256
-    assert len(data['mappings']) == 42
+    assert len(data['mappings']) == 55
     targets = {row['key']: row for row in data['targetCategories']}
     names = {row['sourceExternalId']: targets[row['targetKey']]['name'] for row in data['mappings']}
     assert names[5] == 'カツ丼'
@@ -50,7 +50,12 @@ def test_export_uses_target_level_and_not_internal_ids(catalog_db):
     assert names[21] == '天ぷらうどん'
     assert names[40] == 'オムレツ'
     assert names[67] == 'だし巻き卵'
-    assert 38 not in names and 43 not in names
+    assert 38 not in names
+    assert names[33] == '焼き野菜'
+    assert names[43] == 'シチュー'
+    assert names[54] == 'てんぷら'
+    assert names[55] == '唐揚げ'
+    assert len(targets) == 59
     assert len({row['key'] for row in data['targetCategories']}) == len(targets)
     assert all('id' not in row for row in data['targetCategories'])
 

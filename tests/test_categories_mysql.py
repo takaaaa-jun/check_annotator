@@ -100,8 +100,8 @@ def test_mysql_full_import_and_existing_data_preservation(mysql, tmp_path, route
     assert result.returncode == 0, result.stdout + result.stderr
     categories_before = snapshot(engine, module.metadata.tables)
     assert len(categories_before["source_categories"][1]) == 256
-    assert len(categories_before["food_categories"][1]) == 42
-    assert len(categories_before["category_replacement_mappings"][1]) == 42
+    assert len(categories_before["food_categories"][1]) == 55
+    assert len(categories_before["category_replacement_mappings"][1]) == 55
     repeated = run_cli(url, "--apply")
     assert repeated.returncode == 0, repeated.stdout + repeated.stderr
     assert snapshot(engine, module.metadata.tables) == categories_before
@@ -133,7 +133,7 @@ def test_mysql_full_import_and_existing_data_preservation(mysql, tmp_path, route
     assert extension.returncode == 0, extension.stdout + extension.stderr
     after = snapshot(engine, module.metadata.tables)
     assert len(after["source_categories"][1]) == 256
-    assert len(after["food_categories"][1]) == len(after["category_replacement_mappings"][1]) == 43
+    assert len(after["food_categories"][1]) == len(after["category_replacement_mappings"][1]) == 56
     assert snapshot(engine, BASE_TABLES) == base_before
 
 
@@ -171,7 +171,7 @@ def test_mysql_database_constraints(mysql):
         connection.execute(mapping.update().where(mapping.c.mapping_id == first["mapping_id"]).values(
             deleted_at=first["created_at"]))
         module.import_data(connection, json.loads((ROOT / "data/categories/categories.json").read_text(encoding="utf-8")))
-        assert connection.execute(text("SELECT COUNT(*) FROM category_replacement_mappings")).scalar_one() == 43
+        assert connection.execute(text("SELECT COUNT(*) FROM category_replacement_mappings")).scalar_one() == 56
 
 
 def test_mysql_lock_prevents_concurrent_import(mysql):
@@ -213,6 +213,6 @@ def test_mysql_dashimaki_patch_preserves_existing_data(mysql, tmp_path):
         result = subprocess.run(command + ['--apply'], env=environment, capture_output=True, text=True, encoding='utf-8', timeout=60)
         assert result.returncode == 0, result.stdout + result.stderr
     after = snapshot(engine, module.metadata.tables)
-    assert len(after['food_categories'][1]) == len(after['category_replacement_mappings'][1]) == 42
+    assert len(after['food_categories'][1]) == len(after['category_replacement_mappings'][1]) == 55
     assert after['source_categories'] == before['source_categories']
     assert snapshot(engine, BASE_TABLES) == base_before
